@@ -17,12 +17,45 @@
     h1 { text-align: center; margin: 15px 0; }
 
     .flipbook { 
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
-      background: white; 
       margin: 10px auto; 
       position: relative;
       overflow: hidden;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 
+        0 4px 6px rgba(0,0,0,0.2),
+        0 8px 12px rgba(0,0,0,0.15),
+        0 12px 18px rgba(0,0,0,0.1);
     }
+    /* sisi kanan (tumpukan halaman) */
+    .flipbook::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 12px;
+      height: 100%;
+      background: repeating-linear-gradient(
+        to bottom,
+        #e0e0e0 0px,
+        #ffffff 2px,
+        #e0e0e0 4px
+      );
+      opacity: 0.6;
+    }
+    /* sisi kiri (punggung buku) */
+    .flipbook::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 8px;
+      height: 100%;
+      background: linear-gradient(to right, #bbb, #eee);
+      opacity: 0.7;
+    }
+
     .flipbook img { width: 100%; height: 100%; object-fit: cover; }
     .flipbook .page { cursor: grab; }
     .flipbook .page:active { cursor: grabbing; }
@@ -37,25 +70,6 @@
 
     .goto { margin-bottom: 20px; text-align: center; }
     input[type="number"] { width: 60px; padding: 4px; }
-
-    /* Magnifier */
-    .magnifier {
-      position: absolute;
-      border: 3px solid #007bff;
-      border-radius: 50%;
-      cursor: none;
-      display: none;
-      pointer-events: none;
-      overflow: hidden;
-      width: 150px;
-      height: 150px;
-      z-index: 10;
-    }
-    .magnifier img {
-      position: absolute;
-      transform: scale(2);
-      transform-origin: top left;
-    }
 
     @media (max-width: 768px) {
       .flipbook { width: 95vw !important; height: 70vh !important; }
@@ -80,10 +94,6 @@
     <button id="gotoBtn">Go</button>
   </div>
 
-  <!-- Magnifier -->
-  <div class="magnifier" id="magnifier"><img id="magnifier-img" src=""></div>
-
-  <!-- Audio flip -->
   <audio id="flip-sound" src="sounds/flip.mp3" preload="auto"></audio>
 
   <script>
@@ -94,10 +104,8 @@
     const book = document.getElementById("book");
     const flipSound = document.getElementById("flip-sound");
     const pagination = document.getElementById("pagination");
-    const magnifier = document.getElementById("magnifier");
-    const magnifierImg = document.getElementById("magnifier-img");
 
-    // Tambah halaman
+    // buat halaman
     for(let i=1;i<=totalPages;i++){
       const page = document.createElement("div");
       page.classList.add("page");
@@ -112,31 +120,16 @@
       const h = Math.min(window.innerHeight*0.8,600);
       $("#book").turn({
         width: w, height: h, autoCenter:true,
-        when:{turned:function(e,page){
-          flipSound.currentTime=0; flipSound.play();
-          highlightPage(page);
-        }}
-      });
-
-      // Magnifier
-      $(".flipbook .page img").on("mousemove", function(e){
-        magnifier.style.display = "block";
-        const rect = this.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        magnifier.style.left = e.pageX - magnifier.offsetWidth/2 + "px";
-        magnifier.style.top = e.pageY - magnifier.offsetHeight/2 + "px";
-
-        magnifierImg.src = this.src;
-        magnifierImg.style.left = -x*2 + magnifier.offsetWidth/2 + "px";
-        magnifierImg.style.top = -y*2 + magnifier.offsetHeight/2 + "px";
-      }).on("mouseleave",function(){
-        magnifier.style.display="none";
+        display: (window.innerWidth < 768 ? 'single' : 'double'),
+        when:{
+          turned:function(e,page){
+            flipSound.currentTime=0; flipSound.play();
+            highlightPage(page);
+          }
+        }
       });
     }
 
-    // Pagination
     function createPagination(block=1){
       pagination.innerHTML="";
       let start=(block-1)*perBlock+1;
@@ -164,9 +157,12 @@
 
     function highlightPage(page){
       document.querySelectorAll(".pagination button").forEach(btn=>btn.classList.remove("active"));
-      const btn = document.querySelector(`.pagination button:nth-child(${(page-1)%perBlock + 1})`);
+      const idx=(page-1)%perBlock;
+      const btn = document.querySelector(`.pagination button:nth-child(${blockHasPrev()? idx+2: idx+1})`);
       if(btn) btn.classList.add("active");
     }
+
+    function blockHasPrev(){ return currentBlock>1; }
 
     document.getElementById("prev").addEventListener("click",()=>$("#book").turn("previous"));
     document.getElementById("next").addEventListener("click",()=>$("#book").turn("next"));
@@ -179,7 +175,6 @@
       }
     });
 
-    // Init
     initFlipbook();
     createPagination();
 
