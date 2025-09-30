@@ -119,38 +119,68 @@
     loadPages(book);
 
     function initFlipbook(){
-      const w = Math.min(window.innerWidth*0.9,800);
-      const h = Math.min(window.innerHeight*0.8,600);
-      const displayMode = window.innerWidth < 768 ? "single" : "double";
+  // rasio A4 portrait (tinggi/lebar)
+  const aspect = 842 / 595;
 
-      $("#book").turn({
-        width: w, height: h, autoCenter:true, display: displayMode,
-        when:{turned:function(e,page){
-          if(soundEnabled){
-            flipSound.currentTime=0; 
-            flipSound.play().catch(()=>{});
-          }
-          highlightPage(page);
-        }}
-      });
+  let w = Math.min(window.innerWidth * 0.95, 800);
+  let h = w * aspect;
 
-      // Magnifier
-      $(".flipbook .page img").on("mousemove", function(e){
-        magnifier.style.display = "block";
-        const rect = this.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+  if (h > window.innerHeight * 0.9) {
+    h = window.innerHeight * 0.9;
+    w = h / aspect;
+  }
 
-        magnifier.style.left = e.pageX - magnifier.offsetWidth/2 + "px";
-        magnifier.style.top = e.pageY - magnifier.offsetHeight/2 + "px";
+  const displayMode = window.innerWidth < 768 ? "single" : "double";
 
-        magnifierImg.src = this.src;
-        magnifierImg.style.left = -x*2 + magnifier.offsetWidth/2 + "px";
-        magnifierImg.style.top = -y*2 + magnifier.offsetHeight/2 + "px";
-      }).on("mouseleave",function(){
-        magnifier.style.display="none";
-      });
+  $("#book").turn({
+    width: w,
+    height: h,
+    autoCenter: true,
+    display: displayMode,
+    when: {
+      turned: function(e, page){
+        if (soundEnabled) {
+          flipSound.currentTime = 0; 
+          flipSound.play().catch(()=>{});
+        }
+        highlightPage(page);
+      }
     }
+  });
+
+  // Magnifier masih sama
+  $(".flipbook .page img").on("mousemove", function(e){
+    magnifier.style.display = "block";
+    const rect = this.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    magnifier.style.left = e.pageX - magnifier.offsetWidth/2 + "px";
+    magnifier.style.top = e.pageY - magnifier.offsetHeight/2 + "px";
+
+    magnifierImg.src = this.src;
+    magnifierImg.style.left = -x*2 + magnifier.offsetWidth/2 + "px";
+    magnifierImg.style.top = -y*2 + magnifier.offsetHeight/2 + "px";
+  }).on("mouseleave",function(){
+    magnifier.style.display="none";
+  });
+}
+
+// Resize: cukup update ukuran, jangan hapus isi #book
+$(window).on("resize", function(){
+  const aspect = 842 / 595;
+  let w = Math.min(window.innerWidth * 0.95, 800);
+  let h = w * aspect;
+
+  if (h > window.innerHeight * 0.9) {
+    h = window.innerHeight * 0.9;
+    w = h / aspect;
+  }
+
+  $("#book").turn("size", w, h);
+  $("#book").turn("display", window.innerWidth < 768 ? "single" : "double");
+});
+
 
     // Pagination
     function createPagination(block=1){
