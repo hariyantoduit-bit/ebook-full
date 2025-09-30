@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
+  <title>Flipbook BMD 2023</title>
   <link rel="icon" href="images/page1.jpg"> <!-- favicon biar ga 404 -->
   <script src="js/jquery.min.js"></script>
   <script src="js/turn.min.js"></script>
@@ -27,7 +28,7 @@
     .flipbook .page { cursor: grab; }
     .flipbook .page:active { cursor: grabbing; }
 
-    /* efek bayangan tebal biar kayak buku */
+    /* efek bayangan tipis */
     .flipbook .page {
       box-shadow: inset -2px 0 5px rgba(0,0,0,0.15);
     }
@@ -37,7 +38,7 @@
     button:hover { background: #0056b3; }
 
     .pagination { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin: 10px 0; }
-    .pagination button { padding: 4px 8px; border: 1px solid #007bff; background: white; color: #007bff; }
+    .pagination button { padding: 4px 8px; border: 1px solid #007bff; background: white; color: #007bff; cursor: pointer; }
     .pagination button.active { background: #007bff; color: white; }
 
     .goto { margin-bottom: 20px; text-align: center; }
@@ -92,7 +93,6 @@
     let currentBlock = 1;
     let soundEnabled = false;
 
-    const book = document.getElementById("book");
     const flipSound = document.getElementById("flip-sound");
     const pagination = document.getElementById("pagination");
     const magnifier = document.getElementById("magnifier");
@@ -101,7 +101,7 @@
     // aktifkan sound setelah user interaksi pertama
     document.body.addEventListener("click", () => { soundEnabled = true; }, { once: true });
 
-    // Tambah halaman
+    // Tambah halaman ke flipbook
     function loadPages(target){
       for(let i=1;i<=totalPages;i++){
         const page = document.createElement("div");
@@ -112,71 +112,63 @@
         target.appendChild(page);
       }
     }
-    loadPages(book);
+
+    // Hitung ukuran proporsional
+    function getSize(){
+      const aspect = 842 / 595; // rasio A4
+      let w = Math.min(window.innerWidth * 0.95, 800);
+      let h = w * aspect;
+      if (h > window.innerHeight * 0.9) {
+        h = window.innerHeight * 0.9;
+        w = h / aspect;
+      }
+      return { w, h };
+    }
 
     function initFlipbook(){
-  // rasio A4 portrait (tinggi/lebar)
-  const aspect = 842 / 595;
+      const { w, h } = getSize();
+      const displayMode = window.innerWidth < 768 ? "single" : "double";
 
-  let w = Math.min(window.innerWidth * 0.95, 800);
-  let h = w * aspect;
-
-  if (h > window.innerHeight * 0.9) {
-    h = window.innerHeight * 0.9;
-    w = h / aspect;
-  }
-
-  const displayMode = window.innerWidth < 768 ? "single" : "double";
-
-  $("#book").turn({
-    width: w,
-    height: h,
-    autoCenter: true,
-    display: displayMode,
-    when: {
-      turned: function(e, page){
-        if (soundEnabled) {
-          flipSound.currentTime = 0; 
-          flipSound.play().catch(()=>{});
+      $("#book").turn({
+        width: w,
+        height: h,
+        autoCenter: true,
+        display: displayMode,
+        when: {
+          turned: function(e, page){
+            if (soundEnabled) {
+              flipSound.currentTime = 0; 
+              flipSound.play().catch(()=>{});
+            }
+            highlightPage(page);
+          }
         }
-        highlightPage(page);
-      }
+      });
+
+      // Magnifier
+      $(".flipbook .page img").on("mousemove", function(e){
+        magnifier.style.display = "block";
+        const rect = this.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        magnifier.style.left = e.pageX - magnifier.offsetWidth/2 + "px";
+        magnifier.style.top = e.pageY - magnifier.offsetHeight/2 + "px";
+
+        magnifierImg.src = this.src;
+        magnifierImg.style.left = -x*2 + magnifier.offsetWidth/2 + "px";
+        magnifierImg.style.top = -y*2 + magnifier.offsetHeight/2 + "px";
+      }).on("mouseleave",function(){
+        magnifier.style.display="none";
+      });
     }
-  });
 
-  // Magnifier masih sama
-  $(".flipbook .page img").on("mousemove", function(e){
-    magnifier.style.display = "block";
-    const rect = this.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    magnifier.style.left = e.pageX - magnifier.offsetWidth/2 + "px";
-    magnifier.style.top = e.pageY - magnifier.offsetHeight/2 + "px";
-
-    magnifierImg.src = this.src;
-    magnifierImg.style.left = -x*2 + magnifier.offsetWidth/2 + "px";
-    magnifierImg.style.top = -y*2 + magnifier.offsetHeight/2 + "px";
-  }).on("mouseleave",function(){
-    magnifier.style.display="none";
-  });
-}
-
-// Resize: cukup update ukuran, jangan hapus isi #book
-$(window).on("resize", function(){
-  const aspect = 842 / 595;
-  let w = Math.min(window.innerWidth * 0.95, 800);
-  let h = w * aspect;
-
-  if (h > window.innerHeight * 0.9) {
-    h = window.innerHeight * 0.9;
-    w = h / aspect;
-  }
-
-  $("#book").turn("size", w, h);
-  $("#book").turn("display", window.innerWidth < 768 ? "single" : "double");
-});
-
+    // Resize: update ukuran
+    $(window).on("resize", function(){
+      const { w, h } = getSize();
+      $("#book").turn("size", w, h);
+      $("#book").turn("display", window.innerWidth < 768 ? "single" : "double");
+    });
 
     // Pagination
     function createPagination(block=1){
@@ -211,6 +203,7 @@ $(window).on("resize", function(){
       if(btns[idx]) btns[idx].classList.add("active");
     }
 
+    // Tombol navigasi
     document.getElementById("prev").addEventListener("click",()=>$("#book").turn("previous"));
     document.getElementById("next").addEventListener("click",()=>$("#book").turn("next"));
     document.getElementById("gotoBtn").addEventListener("click",()=>{
@@ -223,17 +216,9 @@ $(window).on("resize", function(){
     });
 
     // Init
+    loadPages(document.getElementById("book"));
     initFlipbook();
     createPagination();
-
-    $(window).on("resize", function(){
-      $("#book").remove(); // hapus element lama
-      const newBook = $("<div/>",{id:"book", class:"flipbook"});
-      $(".nav-buttons").before(newBook);
-      loadPages(newBook[0]);
-      initFlipbook(); 
-      createPagination(currentBlock);
-    });
   </script>
 </body>
 </html>
