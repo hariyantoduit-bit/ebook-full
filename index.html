@@ -1,475 +1,228 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
-  <title>Flipbook BMD - Full</title>
+  <meta charset="UTF-8">
+  <title>Flipbook 173 Halaman</title>
+  <link rel="icon" href="images/page1.jpg"> <!-- favicon biar ga 404 -->
+  <script src="js/jquery.min.js"></script>
+  <script src="js/turn.min.js"></script>
   <style>
-    :root{
-      --bg:#000;
-      --book-bg:#fff;
-      --accent:#007bff;
+    body {
+      background: #000; 
+      display: flex; 
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      overflow: hidden;
     }
-    html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,Arial,Helvetica,sans-serif;color:#fff}
-    .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px;box-sizing:border-box;}
-    header{width:100%;max-width:1200px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-    h1{margin:0;font-size:18px;color:#fff}
-    /* book container */
-    .book-container{width:100%;max-width:1200px;display:flex;justify-content:center;align-items:center}
-    .book{
-      position:relative;
-      background:var(--book-bg);
-      box-shadow:0 12px 40px rgba(0,0,0,0.6);
-      overflow:hidden;
-      border-radius:6px;
-      touch-action: pan-y;
+    h1 { 
+      text-align: center; 
+      margin: 10px 0; 
+      color: white;
+      font-size: 18px;
     }
-    .page{
-      position:absolute;
-      top:0;
-      height:100%;
-      background-color:#fff;
-      background-position:center;
-      background-repeat:no-repeat;
-      background-size:contain;
-      backface-visibility:hidden;
-      box-sizing:border-box;
+
+    .flipbook { 
+      box-shadow: 0 4px 15px rgba(0,0,0,0.7); 
+      background: white; 
+      margin: auto; 
+      position: relative;
     }
-    .page.single{width:100%;left:0}
-    .page.left{width:50%;left:0}
-    .page.right{width:50%;left:50%}
-    /* overlay used for animation */
-    .anim-overlay{
-      position:absolute;
-      top:0;
-      left:0;
-      width:100%;
-      height:100%;
-      pointer-events:none;
-      perspective:1200px;
-      z-index:9999;
+    .flipbook img { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover; 
     }
-    .anim-card{
-      position:absolute;
-      top:0;
-      transform-origin:left center;
-      transform-style:preserve-3d;
-      backface-visibility:hidden;
-      width:100%;
-      height:100%;
-      will-change:transform, left, width;
+    .flipbook .page { 
+      cursor: grab; 
+      box-shadow: inset -2px 0 5px rgba(0,0,0,0.3);
     }
-    /* controls */
-    .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
-    .controls button{background:var(--accent);border:none;color:#fff;padding:8px 12px;border-radius:6px;cursor:pointer}
-    .controls input[type=number]{width:70px;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.12)}
-    .pagination{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}
-    .pagination button{padding:4px 8px;border-radius:4px;border:1px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer}
-    .pagination button.active{background:var(--accent);color:#fff}
-    .info{color:#ddd;margin-left:8px}
-    @media(max-width:640px){
-      h1{font-size:16px}
-      .controls button{padding:10px 14px;font-size:15px}
+    .flipbook .page:active { cursor: grabbing; }
+
+    .nav-buttons { 
+      margin: 10px 0; 
+      display: flex; 
+      gap: 10px; 
+    }
+    button { 
+      padding: 6px 12px; 
+      font-size: 14px; 
+      border: none; 
+      border-radius: 5px; 
+      background: #007bff; 
+      color: white; 
+      cursor: pointer; 
+      transition: 0.3s; 
+    }
+    button:hover { background: #0056b3; }
+
+    .pagination { 
+      display: flex; 
+      flex-wrap: wrap; 
+      justify-content: center; 
+      gap: 5px; 
+      margin: 10px 0; 
+    }
+    .pagination button { 
+      padding: 4px 8px; 
+      border: 1px solid #007bff; 
+      background: white; 
+      color: #007bff; 
+    }
+    .pagination button.active { 
+      background: #007bff; 
+      color: white; 
+    }
+
+    .goto { 
+      margin-bottom: 10px; 
+      text-align: center; 
+      color: white;
+    }
+    input[type="number"] { 
+      width: 60px; 
+      padding: 4px; 
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>Laporan Rekonsiliasi BMD Tahun 2023</h1>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button id="fullscreenBtn" style="background:#333;border:none;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer">Toggle Fullscreen</button>
-        <span id="pageInfo" class="info"></span>
-      </div>
-    </header>
+  <h1>Laporan Rekonsiliasi BMD Tahun 2023</h1>
 
-    <div class="book-container">
-      <div id="book" class="book" role="region" aria-label="Flipbook"></div>
-      <!-- overlay untuk efek animasi -->
-      <div id="animOverlay" class="anim-overlay" style="display:none;"></div>
-    </div>
+  <div class="flipbook" id="book"></div>
 
-    <div class="controls" style="justify-content:center">
-      <button id="prev">⬅️ Prev</button>
-      <button id="next">Next ➡️</button>
-
-      <label style="color:#ddd">Go to:
-        <input id="gotoPage" type="number" min="1" value="1">
-      </label>
-      <button id="gotoBtn">Go</button>
-    </div>
-
-    <div id="pagination" class="pagination"></div>
+  <div class="nav-buttons">
+    <button id="prev">⬅️</button>
+    <button id="next">➡️</button>
   </div>
 
-  <!-- sound (taruh file di path ini) -->
-  <audio id="flipSound" src="sounds/flip.mp3" preload="auto"></audio>
+  <div class="pagination" id="pagination"></div>
 
-  <script src="js/jquery.min.js"></script>
+  <div class="goto">
+    <label for="gotoPage">Go to page: </label>
+    <input type="number" id="gotoPage" min="1" max="173">
+    <button id="gotoBtn">Go</button>
+  </div>
+
+  <!-- Audio flip -->
+  <audio id="flip-sound" src="sounds/flip.mp3" preload="auto"></audio>
+
   <script>
-  (function($){
-    // CONFIG
-    const TOTAL_PAGES = 173;
-    const PER_BLOCK = 10;
-    const A4_ASPECT = 842/595;
-    const MAX_BOOK_WIDTH = 1000;
-
-    // state
-    let currentPage = 1; // 1-based
+    const totalPages = 173;
+    const perBlock = 10;
     let currentBlock = 1;
     let soundEnabled = false;
 
-    // elements
-    const $book = $("#book");
-    const $animOverlay = $("#animOverlay");
-    const flipSound = document.getElementById("flipSound");
+    const flipSound = document.getElementById("flip-sound");
+    const pagination = document.getElementById("pagination");
 
-    // build pages automatically (images/page1.jpg ... page173.jpg)
-    function buildPages(){
-      $book.empty();
-      for(let i=1;i<=TOTAL_PAGES;i++){
-        const url = `images/page${i}.jpg`;
-        const div = document.createElement("div");
-        div.className = "page";
-        div.dataset.index = i;
-        div.style.backgroundImage = `url('${url}')`;
-        // append
-        $book.append(div);
+    // aktifkan sound setelah user interaksi pertama
+    document.body.addEventListener("click", () => { soundEnabled = true; }, { once: true });
+
+    // Tambah halaman otomatis
+    function loadPages(target){
+      for(let i=1;i<=totalPages;i++){
+        const page = document.createElement("div");
+        page.classList.add("page");
+        const img = document.createElement("img");
+        img.src = `images/page${i}.jpg`;
+        page.appendChild(img);
+        target.appendChild(page);
       }
     }
+    loadPages(document.getElementById("book"));
 
-    // compute size per ONE page (not spread)
-    function computeSize(){
-      const vw = Math.min(window.innerWidth * 0.95, MAX_BOOK_WIDTH);
-      const vh = window.innerHeight * 0.85;
-      // in landscape we will display spread (two pages), so one page width should allow two to fit on viewport
-      let pageWidth = Math.min(vw, window.innerWidth * 0.95);
-      if(window.innerWidth > window.innerHeight){
-        const candidate = Math.min((window.innerWidth * 0.92) / 2, MAX_BOOK_WIDTH/2);
-        pageWidth = Math.min(pageWidth, candidate);
-      } else {
-        pageWidth = Math.min(pageWidth, window.innerWidth * 0.95);
-      }
-      let pageHeight = pageWidth * A4_ASPECT;
-      if(pageHeight > vh){
-        pageHeight = vh;
-        pageWidth = pageHeight / A4_ASPECT;
-      }
-      return {pageWidth: Math.round(pageWidth), pageHeight: Math.round(pageHeight)};
-    }
+    function initFlipbook(){
+      // rasio A4 portrait (tinggi/lebar)
+      const aspect = 842 / 595;
 
-    // render visible pages based on mode
-    function render(){
-      const {pageWidth, pageHeight} = computeSize();
-      const isLandscape = window.innerWidth > window.innerHeight;
-      const displayMode = isLandscape ? "double" : "single";
+      let w = Math.min(window.innerWidth * 0.95, 1000);
+      let h = w * aspect;
 
-      // set book size
-      if(displayMode === "double"){
-        $book.css({width: (pageWidth*2) + "px", height: pageHeight + "px"});
-      } else {
-        $book.css({width: pageWidth + "px", height: pageHeight + "px"});
+      if (h > window.innerHeight * 0.85) {
+        h = window.innerHeight * 0.85;
+        w = h / aspect;
       }
 
-      // hide all pages
-      $book.children(".page").each(function(){
-        $(this).css({display:"none", width: (displayMode === "double" ? pageWidth+"px" : pageWidth+"px"), height: pageHeight+"px", left:0}).removeClass("left right single");
-      });
-
-      // decide which pages to show
-      if(displayMode === "single"){
-        // always one page visible: currentPage (cover or any)
-        const $p = $book.children(`.page[data-index='${currentPage}']`);
-        if($p.length){
-          $p.css({display:"block", left:0}).addClass("single");
-        }
-      } else {
-        // double (spread). Rules:
-        // - if currentPage == 1 => show cover single centered (full width)
-        // - if currentPage == TOTAL_PAGES => show cover back single centered
-        // - else show left (even) and right (odd) pages:
-        if(currentPage === 1 || currentPage === TOTAL_PAGES){
-          // single cover
-          const idx = currentPage;
-          const $p = $book.children(`.page[data-index='${idx}']`);
-          $p.css({display:"block", left:0, width:pageWidth+"px"}).addClass("single");
-        } else {
-          // choose left even page and right odd page
-          let leftPage, rightPage;
-          if(currentPage % 2 === 0){
-            leftPage = currentPage;
-            rightPage = currentPage + 1;
-          } else {
-            leftPage = currentPage - 1;
-            rightPage = currentPage;
+      $("#book").turn({
+        width: w,
+        height: h,
+        autoCenter: true,
+        display: "double", // selalu double
+        when: {
+          turned: function(e, page){
+            if (soundEnabled) {
+              flipSound.currentTime = 0; 
+              flipSound.play().catch(()=>{});
+            }
+            highlightPage(page);
           }
-          // clamp
-          if(leftPage < 2) leftPage = 2;
-          if(rightPage > TOTAL_PAGES-1) rightPage = TOTAL_PAGES-1;
-
-          const $L = $book.children(`.page[data-index='${leftPage}']`);
-          const $R = $book.children(`.page[data-index='${rightPage}']`);
-          if($L.length){
-            $L.css({display:"block", left:0, width:pageWidth+"px"}).addClass("left");
-          }
-          if($R.length){
-            $R.css({display:"block", left:pageWidth+"px", width:pageWidth+"px"}).addClass("right");
-          }
-        }
-      }
-
-      updatePageInfo();
-      createPagination(currentBlock);
-    }
-
-    // animate simple page-turn effect
-    function pageTurnAnimation(direction, fromIndex, toIndex, callback){
-      // direction: "next" or "prev"
-      // fromIndex: current page before change
-      // toIndex: page after change
-      const {pageWidth, pageHeight} = computeSize();
-      $animOverlay.empty().hide();
-      // overlay container sized same as book
-      $animOverlay.css({width: $book.width()+"px", height: $book.height()+"px"}).show();
-
-      // create card element that will rotate
-      const card = document.createElement("div");
-      card.className = "anim-card";
-      card.style.width = ($book.width()) + "px";
-      card.style.height = ($book.height()) + "px";
-      card.style.left = "0px";
-      // pick image to animate: if double mode and direction next -> animate right page folding left
-      const isLandscape = window.innerWidth > window.innerHeight;
-      let imgSrc = null;
-      let origin = "left center";
-      if(!isLandscape){
-        // single: animate the current page image
-        imgSrc = $book.children(`.page[data-index='${fromIndex}']`).css("background-image");
-        origin = (direction === "next") ? "left center" : "right center";
-      } else {
-        // landscape: animate the turning page (right when next, left when prev)
-        if(direction === "next"){
-          // animate right page (fromIndex is left/right logic already)
-          const rightIdx = (fromIndex %2 ===0) ? fromIndex+1 : fromIndex;
-          imgSrc = $book.children(`.page[data-index='${rightIdx}']`).css("background-image");
-          origin = "left center";
-        } else {
-          const leftIdx = (fromIndex %2 ===0) ? fromIndex : fromIndex-1;
-          imgSrc = $book.children(`.page[data-index='${leftIdx}']`).css("background-image");
-          origin = "right center";
-        }
-      }
-      // normalize background-image string
-      if(imgSrc && imgSrc !== "none"){
-        // make face element
-        const face = document.createElement("div");
-        face.style.width = ($book.width()) + "px";
-        face.style.height = ($book.height()) + "px";
-        face.style.backgroundImage = imgSrc;
-        face.style.backgroundSize = "cover";
-        face.style.backgroundPosition = "center";
-        face.style.position = "absolute";
-        face.style.left = "0";
-        face.style.top = "0";
-        face.style.borderRadius = "0";
-        card.appendChild(face);
-      } else {
-        const f = document.createElement("div");
-        f.style.width = "100%";
-        f.style.height = "100%";
-        f.style.background = "#fff";
-        card.appendChild(f);
-      }
-
-      // add to overlay
-      $animOverlay.append(card);
-      // initial transform & origin
-      card.style.transformOrigin = origin;
-      card.style.transition = "transform 450ms ease-in-out";
-      // small shadow during flip
-      card.style.boxShadow = "0 20px 50px rgba(0,0,0,0.6)";
-
-      // trigger reflow then animate
-      setTimeout(()=>{
-        if(direction === "next"){
-          // rotate Y from 0 to -180
-          card.style.transform = "rotateY(-180deg)";
-        } else {
-          card.style.transform = "rotateY(180deg)";
-        }
-      },20);
-
-      // play sound
-      if(soundEnabled){
-        try{ flipSound.currentTime = 0; flipSound.play().catch(()=>{}); }catch(e){}
-      }
-
-      // cleanup after animation
-      setTimeout(()=>{
-        $animOverlay.empty().hide();
-        if(typeof callback === "function") callback();
-      },520);
-    }
-
-    // animateTo with page-turn
-    function animateTo(targetPage){
-      targetPage = Math.max(1, Math.min(TOTAL_PAGES, targetPage));
-      if(targetPage === currentPage) return;
-      const dir = (targetPage > currentPage) ? "next" : "prev";
-      const from = currentPage;
-      // run page-turn animation, then set current page and render
-      pageTurnAnimation(dir, from, targetPage, ()=>{
-        currentPage = targetPage;
-        // ensure cover rules:
-        render();
-        // update pagination block
-        const newBlock = Math.ceil(currentPage / PER_BLOCK);
-        if(newBlock !== currentBlock){
-          currentBlock = newBlock;
-          createPagination(currentBlock);
         }
       });
     }
 
-    // prev/next logic respecting spreads and covers
-    function goPrev(){
-      const isLandscape = window.innerWidth > window.innerHeight;
-      if(isLandscape){
-        if(currentPage === 1) return;
-        if(currentPage === TOTAL_PAGES){
-          // from last cover go to previous spread
-          const t = (TOTAL_PAGES%2===0) ? TOTAL_PAGES-2 : TOTAL_PAGES-3;
-          animateTo(Math.max(1, t));
-        } else {
-          // move back to previous left page / single step
-          if(currentPage %2 === 1){
-            // currently right page -> go to left
-            animateTo(currentPage-1);
-          } else {
-            // currently left page -> go back two pages
-            animateTo(Math.max(1, currentPage-2));
-          }
-        }
-      } else {
-        animateTo(currentPage-1);
-      }
-    }
-    function goNext(){
-      const isLandscape = window.innerWidth > window.innerHeight;
-      if(isLandscape){
-        if(currentPage === 1){
-          animateTo(2);
-        } else if(currentPage === TOTAL_PAGES){
-          return;
-        } else {
-          if(currentPage %2 === 0){
-            // on left page -> move to next left (skip two)
-            animateTo(Math.min(TOTAL_PAGES, currentPage+2));
-          } else {
-            // on right -> move to next left (current+1)
-            animateTo(Math.min(TOTAL_PAGES, currentPage+1));
-          }
-        }
-      } else {
-        animateTo(currentPage+1);
-      }
-    }
+    // Resize → update ukuran
+    $(window).on("resize", function(){
+      const aspect = 842 / 595;
+      let w = Math.min(window.innerWidth * 0.95, 1000);
+      let h = w * aspect;
 
-    // pagination per block
+      if (h > window.innerHeight * 0.85) {
+        h = window.innerHeight * 0.85;
+        w = h / aspect;
+      }
+
+      $("#book").turn("size", w, h);
+    });
+
+    // Pagination
     function createPagination(block=1){
-      currentBlock = block;
-      const $pg = $("#pagination");
-      $pg.empty();
-      const start = (block-1)*PER_BLOCK + 1;
-      const end = Math.min(start + PER_BLOCK - 1, TOTAL_PAGES);
-      if(block > 1){
-        $("<button>").text("«").on("click", ()=> createPagination(block-1)).appendTo($pg);
+      pagination.innerHTML="";
+      let start=(block-1)*perBlock+1;
+      let end=Math.min(start+perBlock-1,totalPages);
+      if(block>1){
+        const prevBlock=document.createElement("button");
+        prevBlock.textContent="«";
+        prevBlock.addEventListener("click",()=>{currentBlock--; createPagination(currentBlock);});
+        pagination.appendChild(prevBlock);
       }
       for(let i=start;i<=end;i++){
-        const $b = $("<button>").text(i).on("click", ()=> animateTo(i));
-        if(i === currentPage) $b.addClass("active");
-        $pg.append($b);
+        const btn=document.createElement("button");
+        btn.textContent=i;
+        btn.addEventListener("click",()=>$("#book").turn("page",i));
+        pagination.appendChild(btn);
       }
-      if(end < TOTAL_PAGES){
-        $("<button>").text("»").on("click", ()=> createPagination(block+1)).appendTo($pg);
+      if(end<totalPages){
+        const nextBlock=document.createElement("button");
+        nextBlock.textContent="»";
+        nextBlock.addEventListener("click",()=>{currentBlock++; createPagination(currentBlock);});
+        pagination.appendChild(nextBlock);
       }
+      highlightPage($("#book").turn("page"));
     }
 
-    function updatePageInfo(){
-      $("#pageInfo").text(`Halaman ${currentPage} / ${TOTAL_PAGES}`);
-      $("#gotoPage").val(currentPage);
-      // highlight
-      $("#pagination button").removeClass("active");
-      const idx = (currentPage-1) % PER_BLOCK;
-      const btns = $("#pagination button").toArray().filter(b => b.textContent !== "«" && b.textContent !== "»");
-      if(btns[idx]) $(btns[idx]).addClass("active");
+    function highlightPage(page){
+      document.querySelectorAll(".pagination button").forEach(btn=>btn.classList.remove("active"));
+      const idx = (page-1)%perBlock;
+      const btns = document.querySelectorAll(".pagination button");
+      if(btns[idx]) btns[idx].classList.add("active");
     }
 
-    // UI hookup
-    function attachHandlers(){
-      $("#prev").on("click", ()=> goPrev());
-      $("#next").on("click", ()=> goNext());
-      $("#gotoBtn").on("click", ()=> {
-        const v = parseInt($("#gotoPage").val()||"1",10);
-        if(!isNaN(v)) animateTo(v);
-      });
-      $("#fullscreenBtn").on("click", toggleFullscreen);
-      $(document).on("keyup", function(e){
-        if(e.key === "ArrowLeft") goPrev();
-        if(e.key === "ArrowRight" || e.key === " ") goNext();
-      });
-
-      // enable sound after first user gesture (safeguard)
-      document.body.addEventListener("click", ()=>{ soundEnabled = true; }, {once:true});
-    }
-
-    // fullscreen helpers
-    function requestFullscreenSafe(){
-      const el = document.documentElement;
-      if(!document.fullscreenElement){
-        if(el.requestFullscreen) el.requestFullscreen().catch(()=>{});
-        else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-        else if(el.msRequestFullscreen) el.msRequestFullscreen();
+    document.getElementById("prev").addEventListener("click",()=>$("#book").turn("previous"));
+    document.getElementById("next").addEventListener("click",()=>$("#book").turn("next"));
+    document.getElementById("gotoBtn").addEventListener("click",()=>{
+      const p=parseInt(document.getElementById("gotoPage").value);
+      if(p>=1 && p<=totalPages){
+        $("#book").turn("page",p);
+        const newBlock=Math.ceil(p/perBlock);
+        if(newBlock!=currentBlock){currentBlock=newBlock; createPagination(currentBlock);}
       }
-    }
-    function exitFullscreenSafe(){
-      if(document.fullscreenElement){
-        if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
-        else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
-      }
-    }
-    function toggleFullscreen(){ if(document.fullscreenElement) exitFullscreenSafe(); else requestFullscreenSafe(); }
+    });
 
-    // init
-    function init(){
-      buildPages();
-      // start at 1
-      currentPage = 1;
-      render();
-      createPagination(1);
-      attachHandlers();
-
-      // auto fullscreen on mobile
-      if(/Mobi|Android/i.test(navigator.userAgent)){
-        setTimeout(()=>{ requestFullscreenSafe(); }, 400);
-      }
-
-      // re-render on resize/orientation change (debounced)
-      let rt;
-      $(window).on("resize orientationchange", function(){
-        clearTimeout(rt);
-        rt = setTimeout(()=> {
-          // ensure current page within range
-          if(currentPage > TOTAL_PAGES) currentPage = TOTAL_PAGES;
-          render();
-        }, 150);
-      });
-    }
-
-    // start
-    $(function(){ init(); });
-
-  })(jQuery);
+    // Init
+    initFlipbook();
+    createPagination();
   </script>
 </body>
 </html>
