@@ -2,78 +2,91 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Laporan Rekonsiliasi BMD Tahun 2023</title>
-  <link rel="icon" href="images/page1.jpg"> <!-- favicon biar ga 404 -->
+  <title>Flipbook Full</title>
+  <link rel="icon" href="images/page1.jpg">
   <script src="js/jquery.min.js"></script>
   <script src="js/turn.min.js"></script>
   <style>
     body { 
-      background: #f0f0f0; 
-      display: flex; 
-      flex-direction: column;
-      align-items: center; 
       margin: 0;
       font-family: Arial, sans-serif;
-    }
-    h1 { text-align: center; margin: 15px 0; }
-
-    .flipbook { 
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
-      background: white; 
-      margin: 10px auto; 
-      position: relative;
+      background: #000; /* background hitam */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
       overflow: hidden;
     }
-    .flipbook img { width: 100%; height: 100%; object-fit: cover; }
-    .flipbook .page { cursor: grab; }
-    .flipbook .page:active { cursor: grabbing; }
-
-    /* efek bayangan tebal biar kayak buku */
-    .flipbook .page {
-      box-shadow: inset -2px 0 5px rgba(0,0,0,0.15);
+    h1 {
+      color: #fff;
+      text-align: center;
+      margin: 10px 0;
+      font-size: 18px;
     }
-
-    .nav-buttons { margin: 10px 0; display: flex; gap: 10px; }
-    button { padding: 6px 12px; font-size: 14px; border: none; border-radius: 5px; background: #007bff; color: white; cursor: pointer; transition: 0.3s; }
+    .flipbook {
+      background: #fff;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+      margin: auto;
+    }
+    .flipbook .page img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .nav-buttons {
+      margin: 8px 0;
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      padding: 6px 12px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      background: #007bff;
+      color: #fff;
+      cursor: pointer;
+      transition: 0.3s;
+    }
     button:hover { background: #0056b3; }
-
-    .pagination { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin: 10px 0; }
-    .pagination button { padding: 4px 8px; border: 1px solid #007bff; background: white; color: #007bff; cursor: pointer; }
-    .pagination button.active { background: #007bff; color: white; }
-
-    .goto { margin-bottom: 20px; text-align: center; }
-    input[type="number"] { width: 60px; padding: 4px; }
-
-    /* Magnifier */
-    .magnifier {
-      position: absolute;
-      border: 3px solid #007bff;
-      border-radius: 50%;
-      cursor: none;
-      display: none;
-      pointer-events: none;
-      overflow: hidden;
-      width: 150px;
-      height: 150px;
-      z-index: 10;
+    .pagination {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 4px;
+      margin: 10px 0;
     }
-    .magnifier img {
-      position: absolute;
-      transform: scale(2);
-      transform-origin: top left;
+    .pagination button {
+      padding: 4px 8px;
+      border: 1px solid #007bff;
+      background: white;
+      color: #007bff;
+    }
+    .pagination button.active {
+      background: #007bff;
+      color: #fff;
+    }
+    .goto {
+      margin-bottom: 15px;
+      text-align: center;
+      color: #fff;
+    }
+    .goto input[type="number"] {
+      width: 60px;
+      padding: 4px;
     }
   </style>
 </head>
 <body>
   <h1>Laporan Rekonsiliasi BMD Tahun 2023</h1>
-  <div class="flipbook" id="book"></div>
+  <div id="book" class="flipbook"></div>
 
   <div class="nav-buttons">
     <button id="prev">⬅️</button>
     <button id="next">➡️</button>
   </div>
 
-  <div class="pagination" id="pagination"></div>
+  <div id="pagination" class="pagination"></div>
 
   <div class="goto">
     <label for="gotoPage">Go to page: </label>
@@ -81,14 +94,10 @@
     <button id="gotoBtn">Go</button>
   </div>
 
-  <!-- Magnifier -->
-  <div class="magnifier" id="magnifier"><img id="magnifier-img" src=""></div>
-
-  <!-- Audio flip -->
   <audio id="flip-sound" src="sounds/flip.mp3" preload="auto"></audio>
 
   <script>
-    const totalPages = 173;
+    const totalPages = 173; // jumlah halaman
     const perBlock = 10;
     let currentBlock = 1;
     let soundEnabled = false;
@@ -96,15 +105,13 @@
     const book = document.getElementById("book");
     const flipSound = document.getElementById("flip-sound");
     const pagination = document.getElementById("pagination");
-    const magnifier = document.getElementById("magnifier");
-    const magnifierImg = document.getElementById("magnifier-img");
 
-    // aktifkan sound setelah user interaksi pertama
+    // aktifkan sound setelah interaksi pertama
     document.body.addEventListener("click", () => { soundEnabled = true; }, { once: true });
 
-    // Tambah halaman
+    // load halaman
     function loadPages(target){
-      for(let i=1;i<=totalPages;i++){
+      for(let i=1; i<=totalPages; i++){
         const page = document.createElement("div");
         page.classList.add("page");
         const img = document.createElement("img");
@@ -115,62 +122,32 @@
     }
     loadPages(book);
 
-    // Hitung ukuran dengan rasio A4
-    function getSize(){
-      const aspect = 842 / 595; // A4 portrait
-      let w = Math.min(window.innerWidth * 0.95, 800);
+    // init flipbook
+    function initFlipbook(){
+      const aspect = 842 / 595; // rasio A4 portrait
+      let w = Math.min(window.innerWidth * 0.95, 900);
       let h = w * aspect;
-      if (h > window.innerHeight * 0.9) {
-        h = window.innerHeight * 0.9;
+      if (h > window.innerHeight * 0.85) {
+        h = window.innerHeight * 0.85;
         w = h / aspect;
       }
-      return { w, h };
-    }
-
-    function initFlipbook(){
-      const { w, h } = getSize();
-      if (!$("#book").data("initialized")) {
-        $("#book").turn({
-          width: w,
-          height: h,
-          autoCenter: true,
-          display: "single", // selalu single
-          when: {
-            turned: function(e, page){
-              if (soundEnabled) {
-                flipSound.currentTime = 0; 
-                flipSound.play().catch(()=>{});
-              }
-              highlightPage(page);
+      // cover depan & belakang single
+      $("#book").turn({
+        width: w,
+        height: h,
+        autoCenter: true,
+        display: window.innerWidth < 768 ? "single" : "double",
+        when: {
+          turned: function(e, page){
+            if (soundEnabled) {
+              flipSound.currentTime = 0;
+              flipSound.play().catch(()=>{});
             }
+            highlightPage(page);
           }
-        });
-        $("#book").data("initialized", true);
-      }
+        }
+      });
     }
-
-    // Resize: cukup update ukuran
-    $(window).on("resize", function(){
-      const { w, h } = getSize();
-      $("#book").turn("size", w, h);
-    });
-
-    // Magnifier
-    $(document).on("mousemove", ".flipbook .page img", function(e){
-      magnifier.style.display = "block";
-      const rect = this.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      magnifier.style.left = e.pageX - magnifier.offsetWidth/2 + "px";
-      magnifier.style.top = e.pageY - magnifier.offsetHeight/2 + "px";
-
-      magnifierImg.src = this.src;
-      magnifierImg.style.left = -x*2 + magnifier.offsetWidth/2 + "px";
-      magnifierImg.style.top = -y*2 + magnifier.offsetHeight/2 + "px";
-    }).on("mouseleave", ".flipbook .page img", function(){
-      magnifier.style.display="none";
-    });
 
     // Pagination
     function createPagination(block=1){
@@ -205,7 +182,7 @@
       if(btns[idx]) btns[idx].classList.add("active");
     }
 
-    // Navigasi tombol
+    // tombol
     document.getElementById("prev").addEventListener("click",()=>$("#book").turn("previous"));
     document.getElementById("next").addEventListener("click",()=>$("#book").turn("next"));
     document.getElementById("gotoBtn").addEventListener("click",()=>{
@@ -217,9 +194,29 @@
       }
     });
 
-    // Init
+    // init pertama
     initFlipbook();
     createPagination();
+
+    // resize responsif
+    $(window).on("resize", function(){
+      const aspect = 842 / 595;
+      let w = Math.min(window.innerWidth * 0.95, 900);
+      let h = w * aspect;
+      if (h > window.innerHeight * 0.85) {
+        h = window.innerHeight * 0.85;
+        w = h / aspect;
+      }
+      $("#book").turn("size", w, h);
+      $("#book").turn("display", window.innerWidth < 768 ? "single" : "double");
+    });
+
+    // auto fullscreen di HP
+    if (/Mobi|Android/i.test(navigator.userAgent)) {
+      document.addEventListener("DOMContentLoaded", () => {
+        document.documentElement.requestFullscreen?.();
+      });
+    }
   </script>
 </body>
 </html>
