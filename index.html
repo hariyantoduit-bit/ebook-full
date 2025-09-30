@@ -1,228 +1,693 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Flipbook 173 Halaman</title>
-  <link rel="icon" href="images/page1.jpg"> <!-- favicon biar ga 404 -->
-  <script src="js/jquery.min.js"></script>
-  <script src="js/turn.min.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+  <title>Flipbook BMD (Full)</title>
+
+  <!-- styling panjang dan terperinci supaya rapi -->
   <style>
-    body {
-      background: #000; 
-      display: flex; 
+    :root {
+      --bg: #000;
+      --book-bg: #fff;
+      --accent: #007bff;
+      --muted: #ddd;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+      color: var(--muted);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* wrapper */
+    .wrap {
+      min-height: 100%;
+      display: flex;
       flex-direction: column;
       align-items: center;
-      margin: 0;
-      font-family: Arial, sans-serif;
-      height: 100vh;
-      overflow: hidden;
-    }
-    h1 { 
-      text-align: center; 
-      margin: 10px 0; 
-      color: white;
-      font-size: 18px;
+      box-sizing: border-box;
+      padding: 12px;
+      gap: 10px;
     }
 
-    .flipbook { 
-      box-shadow: 0 4px 15px rgba(0,0,0,0.7); 
-      background: white; 
-      margin: auto; 
+    header {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      color: #fff;
+    }
+
+    /* book container center */
+    .book-area {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       position: relative;
     }
-    .flipbook img { 
-      width: 100%; 
-      height: 100%; 
-      object-fit: cover; 
-    }
-    .flipbook .page { 
-      cursor: grab; 
-      box-shadow: inset -2px 0 5px rgba(0,0,0,0.3);
-    }
-    .flipbook .page:active { cursor: grabbing; }
 
-    .nav-buttons { 
-      margin: 10px 0; 
-      display: flex; 
-      gap: 10px; 
-    }
-    button { 
-      padding: 6px 12px; 
-      font-size: 14px; 
-      border: none; 
-      border-radius: 5px; 
-      background: #007bff; 
-      color: white; 
-      cursor: pointer; 
-      transition: 0.3s; 
-    }
-    button:hover { background: #0056b3; }
-
-    .pagination { 
-      display: flex; 
-      flex-wrap: wrap; 
-      justify-content: center; 
-      gap: 5px; 
-      margin: 10px 0; 
-    }
-    .pagination button { 
-      padding: 4px 8px; 
-      border: 1px solid #007bff; 
-      background: white; 
-      color: #007bff; 
-    }
-    .pagination button.active { 
-      background: #007bff; 
-      color: white; 
+    /* the actual book element - size will be set by JS */
+    #book {
+      background: var(--book-bg);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+      touch-action: pan-y;
     }
 
-    .goto { 
-      margin-bottom: 10px; 
-      text-align: center; 
+    /* pages are inserted dynamically as children of #book by JS (or by turn.js) */
+    .turn-page {
+      background-color: #fff;
+    }
+
+    /* controls and pagination */
+    .controls {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn.secondary {
+      background: #333;
+    }
+    .btn:active { transform: translateY(1px); }
+
+    .goto {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+    }
+
+    input[type="number"] {
+      width: 70px;
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+    }
+
+    .pagination {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .pagination button {
+      padding: 6px 8px;
+      min-width: 36px;
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+      background: #fff;
+      color: var(--accent);
+      cursor: pointer;
+    }
+    .pagination button.active {
+      background: var(--accent);
       color: white;
     }
-    input[type="number"] { 
-      width: 60px; 
-      padding: 4px; 
+
+    .info {
+      color: #cfcfcf;
+      font-size: 13px;
+    }
+
+    /* preloader */
+    .loader {
+      position: fixed;
+      left: 0; right: 0; top: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.85);
+      z-index: 9999;
+      flex-direction: column;
+      gap: 12px;
+      color: white;
+      font-size: 16px;
+    }
+    .loader .bar {
+      width: 360px;
+      max-width: calc(100% - 40px);
+      height: 10px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .loader .bar > i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg,var(--accent),#00c6ff);
+    }
+
+    /* small screens adjustments */
+    @media (max-width: 640px) {
+      h1 { font-size: 16px; }
+      .btn { padding: 10px 14px; font-size: 15px; }
+      .loader .bar { width: 260px; }
     }
   </style>
 </head>
 <body>
-  <h1>Laporan Rekonsiliasi BMD Tahun 2023</h1>
-
-  <div class="flipbook" id="book"></div>
-
-  <div class="nav-buttons">
-    <button id="prev">⬅️</button>
-    <button id="next">➡️</button>
+  <!-- loader shown until certain amount of images preloaded -->
+  <div id="loader" class="loader" style="display:flex;">
+    <div>Memuat halaman... <span id="loaderCount">0</span>/<span id="loaderTotal">173</span></div>
+    <div class="bar"><i id="loaderBar"></i></div>
+    <div style="font-size:13px;color:#ddd;margin-top:6px">Jika koneksi lambat, tunggu sebentar. Anda juga bisa menutup loader setelah beberapa halaman terisi.</div>
+    <div style="margin-top:8px;">
+      <button id="loaderClose" class="btn secondary">Tutup loader (paksa)</button>
+    </div>
   </div>
 
-  <div class="pagination" id="pagination"></div>
+  <div class="wrap" style="display:none;" id="appWrap">
+    <header>
+      <h1>Laporan Rekonsiliasi BMD Tahun 2023</h1>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="fullscreenToggle" class="btn secondary">Toggle Fullscreen</button>
+        <div class="info" id="pageInfo">Halaman 1 / 173</div>
+      </div>
+    </header>
 
-  <div class="goto">
-    <label for="gotoPage">Go to page: </label>
-    <input type="number" id="gotoPage" min="1" max="173">
-    <button id="gotoBtn">Go</button>
+    <div class="book-area">
+      <!-- the book element used by turn.js -->
+      <div id="book"></div>
+    </div>
+
+    <div class="controls">
+      <button id="prevBtn" class="btn">⬅️ Prev</button>
+      <button id="nextBtn" class="btn">Next ➡️</button>
+
+      <div class="goto">
+        <label style="color:var(--muted)">Ke halaman</label>
+        <input id="gotoInput" type="number" min="1" max="173" value="1">
+        <button id="gotoBtn" class="btn">Go</button>
+      </div>
+    </div>
+
+    <div id="pagination" class="pagination" aria-label="Pagination"></div>
   </div>
 
-  <!-- Audio flip -->
-  <audio id="flip-sound" src="sounds/flip.mp3" preload="auto"></audio>
+  <!-- audio untuk efek flip -->
+  <audio id="flipAudio" src="sounds/flip.mp3" preload="auto"></audio>
+
+  <!-- dependence: jQuery + turn.js (local or CDN) -->
+  <script src="js/jquery.min.js"></script>
+  <!-- if you prefer CDN, swap to: https://cdn.jsdelivr.net/gh/blasten/turn.js/turn.min.js -->
+  <script src="js/turn.min.js"></script>
 
   <script>
-    const totalPages = 173;
-    const perBlock = 10;
+  (function($){
+    /* ============================
+       CONFIG & STATE
+       ============================ */
+    const TOTAL_PAGES = 173;     // jumlah total
+    const PER_BLOCK = 10;        // pagination per-block
+    const A4_ASPECT = 842/595;   // rasio A4 tinggi/lebar
+    const MAX_BOOK_WIDTH = 1000; // batas lebar buku
+    const PRELOAD_COUNT = 24;    // berapa halaman minimal dimuat sebelum sembunyikan loader
+
+    let currentPage = 1;         // 1-based page index (turn.js uses 1-based)
     let currentBlock = 1;
-    let soundEnabled = false;
+    let soundAllowed = false;
 
-    const flipSound = document.getElementById("flip-sound");
-    const pagination = document.getElementById("pagination");
+    // DOM refs
+    const $loader = $("#loader");
+    const $loaderBar = $("#loaderBar");
+    const $loaderCount = $("#loaderCount");
+    const $loaderTotal = $("#loaderTotal");
+    const $loaderClose = $("#loaderClose");
 
-    // aktifkan sound setelah user interaksi pertama
-    document.body.addEventListener("click", () => { soundEnabled = true; }, { once: true });
+    const $appWrap = $("#appWrap");
+    const $book = $("#book");
+    const $pagination = $("#pagination");
+    const flipAudio = document.getElementById("flipAudio");
+    const $pageInfo = $("#pageInfo");
 
-    // Tambah halaman otomatis
-    function loadPages(target){
-      for(let i=1;i<=totalPages;i++){
-        const page = document.createElement("div");
-        page.classList.add("page");
-        const img = document.createElement("img");
-        img.src = `images/page${i}.jpg`;
-        page.appendChild(img);
-        target.appendChild(page);
+    // build pages array implicitly (not storing all in memory, but we will generate dom nodes)
+    function pageUrl(i){
+      return `images/page${i}.jpg`;
+    }
+
+    /* ============================
+       PRELOAD IMAGES (progress bar)
+       - we preload first N images to avoid blankness
+       - then show app; continue lazy-loading remaining in background
+       ============================ */
+    let loadedCount = 0;
+    $loaderTotal.text(TOTAL_PAGES);
+
+    function preloadFirstBatch() {
+      const toLoad = Math.min(TOTAL_PAGES, PRELOAD_COUNT);
+      loadedCount = 0;
+      updateLoaderUI();
+
+      for (let i = 1; i <= toLoad; i++) {
+        const img = new Image();
+        img.onload = function() {
+          loadedCount++;
+          updateLoaderUI();
+          if (loadedCount === toLoad) {
+            // enough loaded; we can hide loader and init book UI
+            showApp();
+            // start background loading of remaining pages
+            setTimeout(preloadRemaining, 200);
+          }
+        };
+        img.onerror = function() {
+          // still count as 'loaded' to avoid blocking the UI forever
+          loadedCount++;
+          updateLoaderUI();
+          if (loadedCount === toLoad) {
+            showApp();
+            setTimeout(preloadRemaining, 200);
+          }
+        };
+        img.src = pageUrl(i);
       }
     }
-    loadPages(document.getElementById("book"));
 
-    function initFlipbook(){
-      // rasio A4 portrait (tinggi/lebar)
-      const aspect = 842 / 595;
+    function preloadRemaining(){
+      // load images remaining lazily but don't block UI
+      for (let i = PRELOAD_COUNT + 1; i <= TOTAL_PAGES; i++) {
+        const img = new Image();
+        img.onload = function(){ /* nothing */ };
+        img.onerror = function(){ /* nothing */ };
+        img.src = pageUrl(i);
+      }
+    }
 
-      let w = Math.min(window.innerWidth * 0.95, 1000);
-      let h = w * aspect;
+    function updateLoaderUI(){
+      $loaderCount.text(loadedCount);
+      const pct = Math.round((loadedCount / Math.min(TOTAL_PAGES, PRELOAD_COUNT)) * 100);
+      $loaderBar.css({ width: pct + "%" });
+    }
 
-      if (h > window.innerHeight * 0.85) {
-        h = window.innerHeight * 0.85;
-        w = h / aspect;
+    $loaderClose.on("click", function() {
+      // allow user to force-close loader (they accept possible blanks)
+      showApp();
+      setTimeout(preloadRemaining, 200);
+    });
+
+    function showApp(){
+      $loader.hide();
+      $appWrap.show();
+    }
+
+    /* ============================
+       Helpers: compute sizes + display mode
+       ============================ */
+    function computePageSize(){
+      // returns {pageWidth, pageHeight, displayMode}
+      const vw = Math.min(window.innerWidth * 0.95, MAX_BOOK_WIDTH);
+      const vh = window.innerHeight * 0.86;
+
+      // decide mode based on width vs height (landscape => double)
+      const isLandscape = window.innerWidth > window.innerHeight;
+      let pageWidth;
+
+      if (isLandscape) {
+        // try to fit two pages side-by-side within viewport width (with small margins)
+        pageWidth = Math.min((window.innerWidth * 0.92) / 2, MAX_BOOK_WIDTH / 2);
+      } else {
+        // portrait - use available width
+        pageWidth = Math.min(vw, window.innerWidth * 0.95);
       }
 
-      $("#book").turn({
+      let pageHeight = Math.round(pageWidth * A4_ASPECT);
+
+      // if height overruns available vertical space, shrink pageWidth accordingly
+      if (pageHeight > vh) {
+        pageHeight = Math.round(vh);
+        pageWidth = Math.round(pageHeight / A4_ASPECT);
+      }
+
+      return {
+        pageWidth: Math.max(200, pageWidth),
+        pageHeight: Math.max(200, pageHeight),
+        displayMode: isLandscape ? "double" : "single"
+      };
+    }
+
+    /* ============================
+       Build DOM pages and initialize turn.js
+       - We'll create the page DIVs inside #book to let turn.js manage them.
+       - For performance, we create image elements lazily: set background-image for already preloaded pages,
+         and fallback to empty which will be filled later by lazy loader.
+       ============================ */
+    function createBookPages() {
+      $book.empty();
+      // create placeholder div.page for each page
+      for (let i = 1; i <= TOTAL_PAGES; i++) {
+        const p = document.createElement("div");
+        p.className = "turn-page";
+        p.dataset.page = i;
+        // for initial PRELOAD_COUNT pages, set background immediately; others set blank and lazy-fill later
+        if (i <= PRELOAD_COUNT) {
+          p.style.backgroundImage = `url('${pageUrl(i)}')`;
+        } else {
+          // leave background empty for lazy load
+          p.style.backgroundImage = "none";
+        }
+        // ensure sizing handled by turn.js
+        $book.append(p);
+      }
+    }
+
+    /* ============================
+       Initialize turn.js with computed size & display mode
+       - We guard against double-init by checking data('initialized')
+       ============================ */
+    function initTurn() {
+      const size = computePageSize();
+      const w = size.displayMode === "double" ? size.pageWidth * 2 : size.pageWidth;
+      const h = size.pageHeight;
+
+      // Destroy previous instantiation if exists (safe re-init)
+      if ($book.data("turn-inited")) {
+        try { $book.turn("destroy"); } catch(e) { /* ignore */ }
+        $book.removeData("turn-inited");
+      }
+
+      // set inline size on container to keep A4 proportion
+      $book.css({ width: w + "px", height: h + "px" });
+
+      // init turn
+      $book.turn({
         width: w,
         height: h,
         autoCenter: true,
-        display: "double", // selalu double
+        display: size.displayMode,
+        duration: 600,
+        acceleration: true,
+        gradients: true,
+        elevation: 60,
+        // when: turned - update UI
         when: {
-          turned: function(e, page){
-            if (soundEnabled) {
-              flipSound.currentTime = 0; 
-              flipSound.play().catch(()=>{});
+          turning: function(e, page, view) {
+            // turning event before transition - play sound if allowed
+            if (soundAllowed) {
+              try { flipAudio.currentTime = 0; flipAudio.play().catch(()=>{}); } catch(err){}
             }
-            highlightPage(page);
+          },
+          turned: function(e, page, view) {
+            // after turned, update currentPage and UI
+            currentPage = page;
+            updateUIAfterTurn();
+          },
+          missing: function(e, pages) {
+            // when turn.js requests a page that is not yet in DOM (or image missing),
+            // we can lazy fill its background here
+            pages.forEach(function(pg){
+              const $p = $book.children(`[data-page='${pg}']`);
+              if($p.length && $p.css("background-image") === "none") {
+                $p.css("background-image", `url('${pageUrl(pg)}')`);
+              }
+            });
           }
         }
       });
+
+      $book.data("turn-inited", true);
+
+      // show current page (ensure correct after init)
+      try { $book.turn("page", currentPage); } catch(e) { /* ignore */ }
     }
 
-    // Resize → update ukuran
-    $(window).on("resize", function(){
-      const aspect = 842 / 595;
-      let w = Math.min(window.innerWidth * 0.95, 1000);
-      let h = w * aspect;
+    /* ============================
+       UI sync & pagination
+       ============================ */
+    function updateUIAfterTurn() {
+      // ensure currentPage is consistent
+      currentPage = $book.turn("page") || currentPage;
+      // update info label
+      $pageInfo.text(`Halaman ${currentPage} / ${TOTAL_PAGES}`);
+      // update goto input
+      $("#gotoInput").val(currentPage);
+      // highlight pagination
+      highlightPagination();
+    }
 
-      if (h > window.innerHeight * 0.85) {
-        h = window.innerHeight * 0.85;
-        w = h / aspect;
+    function createPagination(block = 1) {
+      currentBlock = block;
+      $pagination.empty();
+      const start = (block - 1) * PER_BLOCK + 1;
+      const end = Math.min(start + PER_BLOCK - 1, TOTAL_PAGES);
+
+      if (block > 1) {
+        $("<button>").text("«").on("click", function() { createPagination(block - 1); }).appendTo($pagination);
       }
 
-      $("#book").turn("size", w, h);
+      for (let i = start; i <= end; i++) {
+        const $b = $("<button>").text(i).on("click", function() {
+          goToPage(i);
+        });
+        $pagination.append($b);
+      }
+
+      if (end < TOTAL_PAGES) {
+        $("<button>").text("»").on("click", function() { createPagination(block + 1); }).appendTo($pagination);
+      }
+
+      highlightPagination();
+    }
+
+    function highlightPagination() {
+      // remove all active
+      $pagination.children("button").removeClass("active");
+      // find index within block
+      const idx = (currentPage - 1) % PER_BLOCK;
+      // pick only numeric buttons (ignore « »)
+      const numericBtns = $pagination.children("button").filter(function() {
+        return $(this).text() !== "«" && $(this).text() !== "»";
+      });
+      if (numericBtns.length && numericBtns[idx]) {
+        $(numericBtns[idx]).addClass("active");
+      }
+    }
+
+    /* ============================
+       Navigation helpers
+       - goPrevious / goNext behave with spreads when in double mode:
+         - double mode: step by 2 pages (but respect boundaries)
+         - single mode: step by 1 page
+       ============================ */
+    function goPrevious() {
+      const mode = $book.data("turn-inited") ? $book.turn("display") : detectDisplayMode();
+      if (mode === "double") {
+        // if at first page pair, do nothing
+        if (currentPage <= 2) { return goToPage(1); }
+        // calculate previous left page
+        let target;
+        if (currentPage % 2 === 1) {
+          // currently on right side => move to left of pair
+          target = currentPage - 1;
+        } else {
+          // on left => go two pages back
+          target = Math.max(1, currentPage - 2);
+        }
+        goToPage(target);
+      } else {
+        goToPage(Math.max(1, currentPage - 1));
+      }
+    }
+
+    function goNext() {
+      const mode = $book.data("turn-inited") ? $book.turn("display") : detectDisplayMode();
+      if (mode === "double") {
+        if (currentPage >= TOTAL_PAGES - 1) { return goToPage(TOTAL_PAGES); }
+        let target;
+        if (currentPage % 2 === 0) {
+          // on left -> next left
+          target = currentPage + 2;
+        } else {
+          // on right -> next left (current+1)
+          target = currentPage + 1;
+        }
+        goToPage(Math.min(TOTAL_PAGES, target));
+      } else {
+        goToPage(Math.min(TOTAL_PAGES, currentPage + 1));
+      }
+    }
+
+    function goToPage(n) {
+      n = Math.max(1, Math.min(TOTAL_PAGES, Math.floor(n)));
+      // If double mode, ensure we navigate to a proper side so turn.js shows a nice spread:
+      const mode = $book.turn ? $book.turn("display") : detectDisplayMode();
+      if (mode === "double") {
+        // ensure for double mode we land on proper pages (left must be even)
+        if (n === 1) {
+          // if user wants page 1, allow it (it will show pair 1-2)
+        } else if (n % 2 === 1) {
+          // if odd, n is right page — we want pair left = n-1
+          n = Math.max(1, n - 1);
+        }
+      }
+      try {
+        $book.turn("page", n);
+      } catch (e) {
+        // if turn not ready, set currentPage and render after init
+        currentPage = n;
+      }
+    }
+
+    /* ============================
+       Utility: detect display mode by viewport
+       ============================ */
+    function detectDisplayMode() {
+      return (window.innerWidth > window.innerHeight) ? "double" : "single";
+    }
+
+    /* ============================
+       Responsive handler: resizes and toggles single/double
+       - We'll re-init turn only if displayMode changed (to avoid loops)
+       - Otherwise just call turn('size', w,h)
+       ============================ */
+    let lastDisplay = null;
+
+    function onResizeDebounced() {
+      const size = computePageSize();
+      const newDisplay = size.displayMode;
+      const w = newDisplay === "double" ? size.pageWidth * 2 : size.pageWidth;
+      const h = size.pageHeight;
+
+      // if turn isn't initialized yet, skip
+      if (!$book.data("turn-inited")) return;
+
+      // if display changed (single <-> double) we re-init turn to avoid odd behavior
+      if (lastDisplay && lastDisplay !== newDisplay) {
+        // re-init: keep currentPage sensible
+        try {
+          $book.turn("destroy");
+        } catch(e){}
+        $book.removeData("turn-inited");
+        initTurn();
+        lastDisplay = newDisplay;
+        return;
+      }
+
+      // otherwise update size in place
+      try {
+        $book.turn("size", w, h);
+      } catch(e){}
+      lastDisplay = newDisplay;
+    }
+
+    /* ============================
+       Fullscreen helpers & toggle
+       ============================ */
+    function requestFullscreen() {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      else if (el.msRequestFullscreen) el.msRequestFullscreen();
+    }
+    function exitFullscreen() {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
+    function toggleFullscreen() {
+      if (document.fullscreenElement) exitFullscreen();
+      else requestFullscreen();
+    }
+
+    // attach UI events for fullscreen toggle button
+    $("#fullscreenToggle").on("click", toggleFullscreen);
+
+    /* ============================
+       Attach controls & keyboard
+       ============================ */
+    function attachUI() {
+      $("#prevBtn").on("click", function(){ goPrevious(); });
+      $("#nextBtn").on("click", function(){ goNext(); });
+      $("#gotoBtn").on("click", function(){ const val = parseInt($("#gotoInput").val()||"1",10); goToPage(val); });
+      $("#gotoInput").on("keyup", function(e){ if(e.key === "Enter") { const val = parseInt($(this).val()||"1",10); goToPage(val); } });
+
+      // keyboard navigation
+      $(document).on("keyup", function(e){
+        if (e.key === "ArrowLeft") goPrevious();
+        else if (e.key === "ArrowRight" || e.key === " ") goNext();
+      });
+    }
+
+    /* ============================
+       Start sequence
+       ============================ */
+    function start() {
+      // show loader and start preload
+      preloadFirstBatch();
+
+      // once app visible we create pages and turn
+      createBookPages();
+
+      // set initial page
+      currentPage = 1;
+
+      // attach UI handlers
+      attachUI();
+
+      // when turn init later, update UI
+      // init turn AFTER a small timeout to allow preloaded images to be painted and CSS computed
+      setTimeout(function(){
+        initTurn();
+        createPagination(1);
+        updateUIAfterTurn();
+        lastDisplay = detectDisplayMode();
+      }, 250);
+
+      // handle resize/orientation with debounce
+      let to;
+      $(window).on("resize orientationchange", function(){
+        clearTimeout(to);
+        to = setTimeout(function(){
+          // if turn not inited, ignore
+          if (!$book.data("turn-inited")) return;
+          onResizeDebounced();
+        }, 180);
+      });
+
+      // allow toggling sound after user gesture (browsers block autoplay)
+      document.body.addEventListener("click", function enableSound(){ soundAllowed = true; document.body.removeEventListener("click", enableSound); }, { once: true });
+    }
+
+    // kick off when DOM ready
+    $(function(){
+      start();
     });
 
-    // Pagination
-    function createPagination(block=1){
-      pagination.innerHTML="";
-      let start=(block-1)*perBlock+1;
-      let end=Math.min(start+perBlock-1,totalPages);
-      if(block>1){
-        const prevBlock=document.createElement("button");
-        prevBlock.textContent="«";
-        prevBlock.addEventListener("click",()=>{currentBlock--; createPagination(currentBlock);});
-        pagination.appendChild(prevBlock);
-      }
-      for(let i=start;i<=end;i++){
-        const btn=document.createElement("button");
-        btn.textContent=i;
-        btn.addEventListener("click",()=>$("#book").turn("page",i));
-        pagination.appendChild(btn);
-      }
-      if(end<totalPages){
-        const nextBlock=document.createElement("button");
-        nextBlock.textContent="»";
-        nextBlock.addEventListener("click",()=>{currentBlock++; createPagination(currentBlock);});
-        pagination.appendChild(nextBlock);
-      }
-      highlightPage($("#book").turn("page"));
-    }
-
-    function highlightPage(page){
-      document.querySelectorAll(".pagination button").forEach(btn=>btn.classList.remove("active"));
-      const idx = (page-1)%perBlock;
-      const btns = document.querySelectorAll(".pagination button");
-      if(btns[idx]) btns[idx].classList.add("active");
-    }
-
-    document.getElementById("prev").addEventListener("click",()=>$("#book").turn("previous"));
-    document.getElementById("next").addEventListener("click",()=>$("#book").turn("next"));
-    document.getElementById("gotoBtn").addEventListener("click",()=>{
-      const p=parseInt(document.getElementById("gotoPage").value);
-      if(p>=1 && p<=totalPages){
-        $("#book").turn("page",p);
-        const newBlock=Math.ceil(p/perBlock);
-        if(newBlock!=currentBlock){currentBlock=newBlock; createPagination(currentBlock);}
-      }
-    });
-
-    // Init
-    initFlipbook();
-    createPagination();
+  })(jQuery);
   </script>
 </body>
 </html>
