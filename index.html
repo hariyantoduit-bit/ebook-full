@@ -3,44 +3,56 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
-  <title>Flipbook BMD (Full)</title>
+  <title>Flipbook BMD — Full Version</title>
 
-  <!-- styling panjang dan terperinci supaya rapi -->
+  <!--
+    Catatan: file ini sengaja verbose (banyak komentar & struktur) agar mudah dibaca.
+    Total halaman diatur oleh TOTAL_PAGES (default 173).
+    Pastikan:
+      - images/page1.jpg ... images/page173.jpg tersedia
+      - sounds/flip.mp3 tersedia
+      - js/jquery.min.js dan js/turn.min.js tersedia
+  -->
+
   <style>
-    :root {
+    /* -----------------------------------------
+       Visual theme (black outside, white pages)
+       ----------------------------------------- */
+    :root{
       --bg: #000;
       --book-bg: #fff;
       --accent: #007bff;
       --muted: #ddd;
+      --radius: 8px;
     }
 
     html, body {
       height: 100%;
       margin: 0;
       background: var(--bg);
-      font-family: Inter, "Helvetica Neue", Arial, sans-serif;
       color: var(--muted);
+      font-family: Inter, "Helvetica Neue", Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
 
-    /* wrapper */
+    /* wrapper to center content */
     .wrap {
       min-height: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
+      gap: 12px;
+      padding: 14px;
       box-sizing: border-box;
-      padding: 12px;
-      gap: 10px;
     }
 
     header {
       width: 100%;
       max-width: 1200px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       gap: 12px;
     }
 
@@ -50,32 +62,47 @@
       color: #fff;
     }
 
-    /* book container center */
+    /* book area (centered) */
     .book-area {
       width: 100%;
       max-width: 1200px;
       display: flex;
       justify-content: center;
       align-items: center;
-      position: relative;
     }
 
-    /* the actual book element - size will be set by JS */
+    /* the #book element is controlled by JS/turn.js */
     #book {
       background: var(--book-bg);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
-      border-radius: 6px;
+      border-radius: var(--radius);
+      box-shadow: 0 16px 60px rgba(0,0,0,0.6);
       overflow: hidden;
       position: relative;
-      touch-action: pan-y;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    /* pages are inserted dynamically as children of #book by JS (or by turn.js) */
-    .turn-page {
-      background-color: #fff;
+    /* pages created inside #book should fill container and center image */
+    #book .page {
+      box-sizing: border-box;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
     }
 
-    /* controls and pagination */
+    /* img inside page uses contain to avoid cropping */
+    #book .page img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain; /* IMPORTANT: preserves full A4 inside page frame */
+      display: block;
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none; /* allow drag gestures through turn.js */
+    }
+
+    /* controls area under book */
     .controls {
       width: 100%;
       max-width: 1200px;
@@ -91,13 +118,11 @@
       color: #fff;
       border: none;
       padding: 8px 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
     }
-    .btn.secondary {
-      background: #333;
-    }
+    .btn.secondary { background: #333; }
     .btn:active { transform: translateY(1px); }
 
     .goto {
@@ -106,9 +131,8 @@
       gap: 6px;
       color: var(--muted);
     }
-
     input[type="number"] {
-      width: 70px;
+      width: 78px;
       padding: 6px;
       border-radius: 6px;
       border: 1px solid rgba(255,255,255,0.08);
@@ -139,31 +163,28 @@
       color: white;
     }
 
-    .info {
-      color: #cfcfcf;
-      font-size: 13px;
-    }
+    .info { color: #cfcfcf; font-size: 13px; }
 
-    /* preloader */
+    /* Loader overlay while first pages preload */
     .loader {
       position: fixed;
       left: 0; right: 0; top: 0; bottom: 0;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: rgba(0,0,0,0.85);
+      background: rgba(0,0,0,0.88);
       z-index: 9999;
-      flex-direction: column;
       gap: 12px;
-      color: white;
+      color: #fff;
       font-size: 16px;
     }
     .loader .bar {
-      width: 360px;
+      width: 420px;
       max-width: calc(100% - 40px);
-      height: 10px;
-      background: rgba(255,255,255,0.12);
-      border-radius: 6px;
+      height: 12px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
       overflow: hidden;
     }
     .loader .bar > i {
@@ -173,36 +194,35 @@
       background: linear-gradient(90deg,var(--accent),#00c6ff);
     }
 
-    /* small screens adjustments */
-    @media (max-width: 640px) {
+    /* responsive */
+    @media (max-width: 760px) {
+      .loader .bar { width: 280px; }
       h1 { font-size: 16px; }
       .btn { padding: 10px 14px; font-size: 15px; }
-      .loader .bar { width: 260px; }
     }
   </style>
 </head>
 <body>
-  <!-- loader shown until certain amount of images preloaded -->
-  <div id="loader" class="loader" style="display:flex;">
-    <div>Memuat halaman... <span id="loaderCount">0</span>/<span id="loaderTotal">173</span></div>
-    <div class="bar"><i id="loaderBar"></i></div>
-    <div style="font-size:13px;color:#ddd;margin-top:6px">Jika koneksi lambat, tunggu sebentar. Anda juga bisa menutup loader setelah beberapa halaman terisi.</div>
-    <div style="margin-top:8px;">
-      <button id="loaderClose" class="btn secondary">Tutup loader (paksa)</button>
-    </div>
+  <!-- Loader -->
+  <div id="loader" class="loader" style="display:flex">
+    <div id="loaderText">Memuat halaman...</div>
+    <div class="bar"><i id="loaderBar" style="width:0%"></i></div>
+    <div style="font-size:13px;color:#ddd">Jika koneksi lambat, tunggu. Kamu bisa menutup loader setelah beberapa halaman terisi.</div>
+    <div style="margin-top:8px"><button id="loaderClose" class="btn secondary">Tutup loader (paksa)</button></div>
   </div>
 
-  <div class="wrap" style="display:none;" id="appWrap">
+  <!-- App -->
+  <div class="wrap" id="app" style="display:none;">
     <header>
       <h1>Laporan Rekonsiliasi BMD Tahun 2023</h1>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:10px;align-items:center">
         <button id="fullscreenToggle" class="btn secondary">Toggle Fullscreen</button>
-        <div class="info" id="pageInfo">Halaman 1 / 173</div>
+        <div id="pageInfo" class="info">Halaman 1 / 173</div>
       </div>
     </header>
 
     <div class="book-area">
-      <!-- the book element used by turn.js -->
+      <!-- This element will be controlled by turn.js -->
       <div id="book"></div>
     </div>
 
@@ -220,469 +240,447 @@
     <div id="pagination" class="pagination" aria-label="Pagination"></div>
   </div>
 
-  <!-- audio untuk efek flip -->
-  <audio id="flipAudio" src="sounds/flip.mp3" preload="auto"></audio>
+  <!-- audio -->
+  <audio id="flipSound" src="sounds/flip.mp3" preload="auto"></audio>
 
-  <!-- dependence: jQuery + turn.js (local or CDN) -->
+  <!-- scripts: jQuery + turn.js (local) -->
   <script src="js/jquery.min.js"></script>
-  <!-- if you prefer CDN, swap to: https://cdn.jsdelivr.net/gh/blasten/turn.js/turn.min.js -->
   <script src="js/turn.min.js"></script>
 
   <script>
   (function($){
-    /* ============================
-       CONFIG & STATE
-       ============================ */
-    const TOTAL_PAGES = 173;     // jumlah total
-    const PER_BLOCK = 10;        // pagination per-block
-    const A4_ASPECT = 842/595;   // rasio A4 tinggi/lebar
-    const MAX_BOOK_WIDTH = 1000; // batas lebar buku
-    const PRELOAD_COUNT = 24;    // berapa halaman minimal dimuat sebelum sembunyikan loader
+    'use strict';
 
-    let currentPage = 1;         // 1-based page index (turn.js uses 1-based)
+    /* =========================
+       CONFIG & STATE
+       ========================= */
+    const TOTAL_PAGES = 173;     // sesuaikan kalau berubah
+    const PER_BLOCK = 10;        // pagination per block
+    const A4_ASPECT = 1.41421356; // tinggi/lebar ≈ 297/210
+    const MAX_BOOK_WIDTH = 1200; // maksimal lebar book (adjustable)
+    const PRELOAD_COUNT = 20;    // halaman pertama yang dipreload sebelum sembunyikan loader
+
+    let currentPage = 1;         // halaman aktif (1-based)
     let currentBlock = 1;
     let soundAllowed = false;
+    let turnInitialized = false;
 
     // DOM refs
     const $loader = $("#loader");
     const $loaderBar = $("#loaderBar");
-    const $loaderCount = $("#loaderCount");
-    const $loaderTotal = $("#loaderTotal");
+    const $loaderText = $("#loaderText");
     const $loaderClose = $("#loaderClose");
-
-    const $appWrap = $("#appWrap");
+    const $app = $("#app");
     const $book = $("#book");
     const $pagination = $("#pagination");
-    const flipAudio = document.getElementById("flipAudio");
     const $pageInfo = $("#pageInfo");
+    const flipSound = document.getElementById("flipSound");
 
-    // build pages array implicitly (not storing all in memory, but we will generate dom nodes)
-    function pageUrl(i){
-      return `images/page${i}.jpg`;
+    /* =========================
+       Utility: page URL generator
+       ========================= */
+    function pageUrl(idx) {
+      return `images/page${idx}.jpg`;
     }
 
-    /* ============================
-       PRELOAD IMAGES (progress bar)
-       - we preload first N images to avoid blankness
-       - then show app; continue lazy-loading remaining in background
-       ============================ */
-    let loadedCount = 0;
-    $loaderTotal.text(TOTAL_PAGES);
-
-    function preloadFirstBatch() {
+    /* =========================
+       Preload first N images, then show app
+       ========================= */
+    function preloadInitial() {
+      let cnt = 0;
       const toLoad = Math.min(TOTAL_PAGES, PRELOAD_COUNT);
-      loadedCount = 0;
-      updateLoaderUI();
+      $loaderText.text(`Memuat ${cnt}/${toLoad}...`);
+      for (let i=1;i<=toLoad;i++){
+        (function(i){
+          const img = new Image();
+          img.onload = function(){
+            cnt++;
+            updateLoader(cnt, toLoad);
+            if(cnt === toLoad){
+              // enough preloaded -> reveal app
+              setTimeout(() => {
+                showApp();
+                // background preload for remaining
+                setTimeout(preloadRemaining, 200);
+              }, 150);
+            }
+          };
+          img.onerror = function(){
+            cnt++;
+            updateLoader(cnt, toLoad);
+            if(cnt === toLoad){
+              setTimeout(() => { showApp(); setTimeout(preloadRemaining,200); }, 150);
+            }
+          };
+          img.src = pageUrl(i);
+        })(i);
+      }
+    }
 
-      for (let i = 1; i <= toLoad; i++) {
+    function updateLoader(count, total) {
+      $loaderText.text(`Memuat ${count}/${total}...`);
+      const pct = Math.round((count/total) * 100);
+      $loaderBar.css("width", pct + "%");
+    }
+
+    function preloadRemaining() {
+      // lazy preload remaining pages but do not block UI
+      for (let i = PRELOAD_COUNT + 1; i <= TOTAL_PAGES; i++){
         const img = new Image();
-        img.onload = function() {
-          loadedCount++;
-          updateLoaderUI();
-          if (loadedCount === toLoad) {
-            // enough loaded; we can hide loader and init book UI
-            showApp();
-            // start background loading of remaining pages
-            setTimeout(preloadRemaining, 200);
-          }
-        };
-        img.onerror = function() {
-          // still count as 'loaded' to avoid blocking the UI forever
-          loadedCount++;
-          updateLoaderUI();
-          if (loadedCount === toLoad) {
-            showApp();
-            setTimeout(preloadRemaining, 200);
-          }
-        };
+        img.onload = function(){ /* noop */ };
+        img.onerror = function(){ /* noop */ };
         img.src = pageUrl(i);
       }
     }
 
-    function preloadRemaining(){
-      // load images remaining lazily but don't block UI
-      for (let i = PRELOAD_COUNT + 1; i <= TOTAL_PAGES; i++) {
-        const img = new Image();
-        img.onload = function(){ /* nothing */ };
-        img.onerror = function(){ /* nothing */ };
-        img.src = pageUrl(i);
-      }
-    }
-
-    function updateLoaderUI(){
-      $loaderCount.text(loadedCount);
-      const pct = Math.round((loadedCount / Math.min(TOTAL_PAGES, PRELOAD_COUNT)) * 100);
-      $loaderBar.css({ width: pct + "%" });
-    }
-
-    $loaderClose.on("click", function() {
-      // allow user to force-close loader (they accept possible blanks)
+    $loaderClose.on("click", function(){
+      // user forces close loader (accept blanks)
       showApp();
       setTimeout(preloadRemaining, 200);
     });
 
-    function showApp(){
+    function showApp() {
       $loader.hide();
-      $appWrap.show();
+      $app.show();
     }
 
-    /* ============================
-       Helpers: compute sizes + display mode
-       ============================ */
-    function computePageSize(){
-      // returns {pageWidth, pageHeight, displayMode}
+    /* =========================
+       Helpers: compute optimal page size & display mode
+       - pageWidth/pageHeight returned are for ONE A4 page (portrait)
+       - displayMode: "single" for portrait, "double" for landscape
+       ========================= */
+    function computeLayout() {
       const vw = Math.min(window.innerWidth * 0.95, MAX_BOOK_WIDTH);
-      const vh = window.innerHeight * 0.86;
+      const vh = Math.round(window.innerHeight * 0.83);
 
-      // decide mode based on width vs height (landscape => double)
       const isLandscape = window.innerWidth > window.innerHeight;
       let pageWidth;
 
-      if (isLandscape) {
-        // try to fit two pages side-by-side within viewport width (with small margins)
-        pageWidth = Math.min((window.innerWidth * 0.92) / 2, MAX_BOOK_WIDTH / 2);
+      if(isLandscape) {
+        // allow two pages across with small margins
+        const candidate = Math.min((window.innerWidth * 0.88) / 2, MAX_BOOK_WIDTH / 2);
+        pageWidth = Math.max(200, Math.round(candidate));
       } else {
-        // portrait - use available width
-        pageWidth = Math.min(vw, window.innerWidth * 0.95);
+        // single page fits available width
+        pageWidth = Math.max(200, Math.round(Math.min(vw, window.innerWidth * 0.95)));
       }
 
       let pageHeight = Math.round(pageWidth * A4_ASPECT);
 
-      // if height overruns available vertical space, shrink pageWidth accordingly
-      if (pageHeight > vh) {
-        pageHeight = Math.round(vh);
+      // if pageHeight too tall for viewport, reduce width accordingly
+      if(pageHeight > vh){
+        pageHeight = vh;
         pageWidth = Math.round(pageHeight / A4_ASPECT);
       }
 
       return {
-        pageWidth: Math.max(200, pageWidth),
-        pageHeight: Math.max(200, pageHeight),
+        pageWidth,
+        pageHeight,
         displayMode: isLandscape ? "double" : "single"
       };
     }
 
-    /* ============================
-       Build DOM pages and initialize turn.js
-       - We'll create the page DIVs inside #book to let turn.js manage them.
-       - For performance, we create image elements lazily: set background-image for already preloaded pages,
-         and fallback to empty which will be filled later by lazy loader.
-       ============================ */
-    function createBookPages() {
+    /* =========================
+       Build page DOM elements inside #book
+       - We create a <div class="page"><img/></div> for each page (1..TOTAL_PAGES)
+       - For first PRELOAD_COUNT, img.src is set. Others set later via turn.js missing callback or lazy loader.
+       ========================= */
+    function buildPages() {
       $book.empty();
-      // create placeholder div.page for each page
-      for (let i = 1; i <= TOTAL_PAGES; i++) {
-        const p = document.createElement("div");
-        p.className = "turn-page";
-        p.dataset.page = i;
-        // for initial PRELOAD_COUNT pages, set background immediately; others set blank and lazy-fill later
-        if (i <= PRELOAD_COUNT) {
-          p.style.backgroundImage = `url('${pageUrl(i)}')`;
-        } else {
-          // leave background empty for lazy load
-          p.style.backgroundImage = "none";
+      for(let i=1;i<=TOTAL_PAGES;i++){
+        const div = document.createElement("div");
+        div.className = "page";
+        div.dataset.page = i;
+        // create img element; initially only set src for first PRELOAD_COUNT
+        const img = document.createElement("img");
+        img.alt = `Halaman ${i}`;
+        if(i <= PRELOAD_COUNT){
+          img.src = pageUrl(i);
         }
-        // ensure sizing handled by turn.js
-        $book.append(p);
+        // append
+        div.appendChild(img);
+        $book.append(div);
       }
     }
 
-    /* ============================
-       Initialize turn.js with computed size & display mode
-       - We guard against double-init by checking data('initialized')
-       ============================ */
+    /* =========================
+       initTurn — initializes turn.js with computed sizes
+       - if already inited, it destroys previous instance and re-init
+       - ensures pages are sized and turn receives correct display mode
+       ========================= */
     function initTurn() {
-      const size = computePageSize();
-      const w = size.displayMode === "double" ? size.pageWidth * 2 : size.pageWidth;
-      const h = size.pageHeight;
+      // compute size
+      const layout = computeLayout();
+      const pageW = layout.pageWidth;
+      const pageH = layout.pageHeight;
+      const display = layout.displayMode;
+      // container width
+      const containerW = display === "double" ? pageW * 2 : pageW;
 
-      // Destroy previous instantiation if exists (safe re-init)
-      if ($book.data("turn-inited")) {
-        try { $book.turn("destroy"); } catch(e) { /* ignore */ }
-        $book.removeData("turn-inited");
+      // destroy if exists
+      if(turnInitialized && $book.data("turn")) {
+        try { $book.turn("destroy"); } catch(e){ /* ignore */ }
+        $book.removeData("turn");
       }
 
-      // set inline size on container to keep A4 proportion
-      $book.css({ width: w + "px", height: h + "px" });
+      // set dimensions on #book to give turn.js pixel values
+      $book.css({
+        width: containerW + "px",
+        height: pageH + "px"
+      });
 
-      // init turn
+      // initialize turn
       $book.turn({
-        width: w,
-        height: h,
+        width: containerW,
+        height: pageH,
+        display: display,
         autoCenter: true,
-        display: size.displayMode,
-        duration: 600,
         acceleration: true,
         gradients: true,
-        elevation: 60,
-        // when: turned - update UI
+        elevation: 70,
+        duration: 500,
         when: {
+          // fired prior to page turning — good spot to play sound
           turning: function(e, page, view) {
-            // turning event before transition - play sound if allowed
-            if (soundAllowed) {
-              try { flipAudio.currentTime = 0; flipAudio.play().catch(()=>{}); } catch(err){}
+            // play sound if allowed
+            if(soundAllowed){
+              try { flipSound.currentTime = 0; flipSound.play().catch(()=>{}); } catch(err){}
             }
           },
+          // after page turned, update currentPage and UI
           turned: function(e, page, view) {
-            // after turned, update currentPage and UI
             currentPage = page;
-            updateUIAfterTurn();
+            updateAfterTurn();
           },
+          // when turn.js asks for content that might be missing
           missing: function(e, pages) {
-            // when turn.js requests a page that is not yet in DOM (or image missing),
-            // we can lazy fill its background here
-            pages.forEach(function(pg){
-              const $p = $book.children(`[data-page='${pg}']`);
-              if($p.length && $p.css("background-image") === "none") {
-                $p.css("background-image", `url('${pageUrl(pg)}')`);
+            // fill missing pages' <img> src lazily
+            pages.forEach(function(p){
+              const $p = $book.children(`[data-page='${p}']`);
+              if($p.length){
+                const img = $p.find("img");
+                if(img && !img.attr("src")){
+                  img.attr("src", pageUrl(p));
+                }
               }
             });
           }
         }
       });
 
-      $book.data("turn-inited", true);
+      // mark initialized
+      turnInitialized = true;
 
-      // show current page (ensure correct after init)
+      // show desired starting page
       try { $book.turn("page", currentPage); } catch(e) { /* ignore */ }
     }
 
-    /* ============================
-       UI sync & pagination
-       ============================ */
-    function updateUIAfterTurn() {
-      // ensure currentPage is consistent
-      currentPage = $book.turn("page") || currentPage;
-      // update info label
+    /* =========================
+       UI sync after turn
+       ========================= */
+    function updateAfterTurn() {
+      // ensure page info & pagination reflect currentPage
       $pageInfo.text(`Halaman ${currentPage} / ${TOTAL_PAGES}`);
-      // update goto input
       $("#gotoInput").val(currentPage);
-      // highlight pagination
       highlightPagination();
     }
 
+    /* =========================
+       Pagination: create per-block buttons
+       ========================= */
     function createPagination(block = 1) {
       currentBlock = block;
       $pagination.empty();
       const start = (block - 1) * PER_BLOCK + 1;
       const end = Math.min(start + PER_BLOCK - 1, TOTAL_PAGES);
 
-      if (block > 1) {
-        $("<button>").text("«").on("click", function() { createPagination(block - 1); }).appendTo($pagination);
+      if(block > 1){
+        $("<button>").text("«").on("click", function(){ createPagination(block - 1); }).appendTo($pagination);
       }
 
-      for (let i = start; i <= end; i++) {
-        const $b = $("<button>").text(i).on("click", function() {
-          goToPage(i);
-        });
-        $pagination.append($b);
+      for(let i=start;i<=end;i++){
+        const $btn = $("<button>").text(i).on("click", function(){ goTo(i); });
+        $pagination.append($btn);
       }
 
-      if (end < TOTAL_PAGES) {
-        $("<button>").text("»").on("click", function() { createPagination(block + 1); }).appendTo($pagination);
+      if(end < TOTAL_PAGES){
+        $("<button>").text("»").on("click", function(){ createPagination(block + 1); }).appendTo($pagination);
       }
 
       highlightPagination();
     }
 
-    function highlightPagination() {
-      // remove all active
+    function highlightPagination(){
       $pagination.children("button").removeClass("active");
-      // find index within block
       const idx = (currentPage - 1) % PER_BLOCK;
-      // pick only numeric buttons (ignore « »)
-      const numericBtns = $pagination.children("button").filter(function() {
-        return $(this).text() !== "«" && $(this).text() !== "»";
-      });
-      if (numericBtns.length && numericBtns[idx]) {
+      const numericBtns = $pagination.children("button").filter(function(){ return $(this).text() !== "«" && $(this).text() !== "»"; });
+      if(numericBtns.length && numericBtns[idx]){
         $(numericBtns[idx]).addClass("active");
       }
     }
 
-    /* ============================
-       Navigation helpers
-       - goPrevious / goNext behave with spreads when in double mode:
-         - double mode: step by 2 pages (but respect boundaries)
-         - single mode: step by 1 page
-       ============================ */
-    function goPrevious() {
-      const mode = $book.data("turn-inited") ? $book.turn("display") : detectDisplayMode();
-      if (mode === "double") {
-        // if at first page pair, do nothing
-        if (currentPage <= 2) { return goToPage(1); }
-        // calculate previous left page
-        let target;
-        if (currentPage % 2 === 1) {
-          // currently on right side => move to left of pair
-          target = currentPage - 1;
+    /* =========================
+       Navigation helpers: goPrevious, goNext, goTo
+       - Respect display mode: in double mode prefer stepping spreads
+       ========================= */
+    function detectDisplay() {
+      if(!$book.data("turn")) return computeLayout().displayMode;
+      try { return $book.turn("display"); } catch(e) { return computeLayout().displayMode; }
+    }
+
+    function goPrevious(){
+      const mode = detectDisplay();
+      if(mode === "double"){
+        // two-page logic: move to previous spread (left page even)
+        if(currentPage <= 2) return goTo(1);
+        if(currentPage % 2 === 1) {
+          // currently on right -> previous is left (page-1)
+          goTo(currentPage - 1);
         } else {
-          // on left => go two pages back
-          target = Math.max(1, currentPage - 2);
+          // on left -> previous spread: -2
+          goTo(Math.max(1, currentPage - 2));
         }
-        goToPage(target);
       } else {
-        goToPage(Math.max(1, currentPage - 1));
+        goTo(Math.max(1, currentPage - 1));
       }
     }
 
-    function goNext() {
-      const mode = $book.data("turn-inited") ? $book.turn("display") : detectDisplayMode();
-      if (mode === "double") {
-        if (currentPage >= TOTAL_PAGES - 1) { return goToPage(TOTAL_PAGES); }
-        let target;
-        if (currentPage % 2 === 0) {
-          // on left -> next left
-          target = currentPage + 2;
+    function goNext(){
+      const mode = detectDisplay();
+      if(mode === "double"){
+        if(currentPage >= TOTAL_PAGES - 1) return goTo(TOTAL_PAGES);
+        if(currentPage % 2 === 0) {
+          // on left -> next left (skip 2)
+          goTo(Math.min(TOTAL_PAGES, currentPage + 2));
         } else {
-          // on right -> next left (current+1)
-          target = currentPage + 1;
+          // on right -> go to next left (current+1)
+          goTo(Math.min(TOTAL_PAGES, currentPage + 1));
         }
-        goToPage(Math.min(TOTAL_PAGES, target));
       } else {
-        goToPage(Math.min(TOTAL_PAGES, currentPage + 1));
+        goTo(Math.min(TOTAL_PAGES, currentPage + 1));
       }
     }
 
-    function goToPage(n) {
-      n = Math.max(1, Math.min(TOTAL_PAGES, Math.floor(n)));
-      // If double mode, ensure we navigate to a proper side so turn.js shows a nice spread:
-      const mode = $book.turn ? $book.turn("display") : detectDisplayMode();
-      if (mode === "double") {
-        // ensure for double mode we land on proper pages (left must be even)
-        if (n === 1) {
-          // if user wants page 1, allow it (it will show pair 1-2)
-        } else if (n % 2 === 1) {
-          // if odd, n is right page — we want pair left = n-1
-          n = Math.max(1, n - 1);
-        }
+    function goTo(n) {
+      n = Math.max(1, Math.min(TOTAL_PAGES, Math.floor(n) || 1));
+      // if double display, align to even-left pages when appropriate
+      const mode = detectDisplay();
+      if(mode === "double"){
+        // prefer landing on left-even pages for spreads (except page 1 allowed)
+        if(n > 1 && n % 2 === 1) n = n - 1; // if odd, take left page = n-1
       }
       try {
         $book.turn("page", n);
-      } catch (e) {
-        // if turn not ready, set currentPage and render after init
+      } catch(e){
+        // if turn not ready, set state and will be applied on init
         currentPage = n;
       }
     }
 
-    /* ============================
-       Utility: detect display mode by viewport
-       ============================ */
-    function detectDisplayMode() {
-      return (window.innerWidth > window.innerHeight) ? "double" : "single";
+    /* =========================
+       Resize handling: if display mode (single/double) changes, re-init turn.
+       Otherwise update size with turn('size',w,h)
+       Debounced to avoid thrash.
+       ========================= */
+    let resizeTimer = null;
+    let lastDisplayMode = null;
+
+    function onResize() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function(){
+        const layout = computeLayout();
+        const newDisplay = layout.displayMode;
+        const w = newDisplay === "double" ? layout.pageWidth * 2 : layout.pageWidth;
+        const h = layout.pageHeight;
+
+        if(!turnInitialized){
+          // if turn not initialized yet, ignore
+          return;
+        }
+
+        // if display mode changed (single <-> double), reinitialize turn to avoid weird artifacts
+        if(lastDisplayMode && lastDisplayMode !== newDisplay){
+          try { $book.turn("destroy"); } catch(e) {}
+          $book.removeData("turn");
+          turnInitialized = false;
+          initTurn();
+        } else {
+          // just resize in-place
+          try { $book.turn("size", w, h); } catch(e) { /* ignore */ }
+        }
+        lastDisplayMode = newDisplay;
+      }, 180);
     }
 
-    /* ============================
-       Responsive handler: resizes and toggles single/double
-       - We'll re-init turn only if displayMode changed (to avoid loops)
-       - Otherwise just call turn('size', w,h)
-       ============================ */
-    let lastDisplay = null;
-
-    function onResizeDebounced() {
-      const size = computePageSize();
-      const newDisplay = size.displayMode;
-      const w = newDisplay === "double" ? size.pageWidth * 2 : size.pageWidth;
-      const h = size.pageHeight;
-
-      // if turn isn't initialized yet, skip
-      if (!$book.data("turn-inited")) return;
-
-      // if display changed (single <-> double) we re-init turn to avoid odd behavior
-      if (lastDisplay && lastDisplay !== newDisplay) {
-        // re-init: keep currentPage sensible
-        try {
-          $book.turn("destroy");
-        } catch(e){}
-        $book.removeData("turn-inited");
-        initTurn();
-        lastDisplay = newDisplay;
-        return;
-      }
-
-      // otherwise update size in place
-      try {
-        $book.turn("size", w, h);
-      } catch(e){}
-      lastDisplay = newDisplay;
-    }
-
-    /* ============================
-       Fullscreen helpers & toggle
-       ============================ */
-    function requestFullscreen() {
+    /* =========================
+       Fullscreen helpers
+       ========================= */
+    function requestFullscreenSafely() {
       const el = document.documentElement;
       if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
-      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      else if (el.msRequestFullscreen) el.msRequestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen && el.webkitRequestFullscreen();
+      else if (el.msRequestFullscreen) el.msRequestFullscreen && el.msRequestFullscreen();
     }
-    function exitFullscreen() {
-      if (document.exitFullscreen) document.exitFullscreen();
-      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    function exitFullscreenSafely() {
+      if (document.exitFullscreen) document.exitFullscreen && document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen && document.webkitExitFullscreen();
     }
     function toggleFullscreen() {
-      if (document.fullscreenElement) exitFullscreen();
-      else requestFullscreen();
+      if (document.fullscreenElement) exitFullscreenSafely(); else requestFullscreenSafely();
     }
 
-    // attach UI events for fullscreen toggle button
     $("#fullscreenToggle").on("click", toggleFullscreen);
 
-    /* ============================
-       Attach controls & keyboard
-       ============================ */
+    /* =========================
+       Attach UI events
+       ========================= */
     function attachUI() {
-      $("#prevBtn").on("click", function(){ goPrevious(); });
-      $("#nextBtn").on("click", function(){ goNext(); });
-      $("#gotoBtn").on("click", function(){ const val = parseInt($("#gotoInput").val()||"1",10); goToPage(val); });
-      $("#gotoInput").on("keyup", function(e){ if(e.key === "Enter") { const val = parseInt($(this).val()||"1",10); goToPage(val); } });
+      $("#prevBtn").on("click", goPrevious);
+      $("#nextBtn").on("click", goNext);
+      $("#gotoBtn").on("click", function(){ const n = parseInt($("#gotoInput").val()||"1",10); goTo(n); });
+      $("#gotoInput").on("keyup", function(e){ if(e.key === "Enter") { const n = parseInt($(this).val()||"1",10); goTo(n); } });
 
-      // keyboard navigation
+      // keyboard
       $(document).on("keyup", function(e){
-        if (e.key === "ArrowLeft") goPrevious();
-        else if (e.key === "ArrowRight" || e.key === " ") goNext();
+        if(e.key === "ArrowLeft") goPrevious();
+        if(e.key === "ArrowRight" || e.key === " ") goNext();
       });
+
+      // enable sound after first tap/click due to browser autoplay policy
+      document.body.addEventListener("click", function unlockSound(){ soundAllowed = true; document.body.removeEventListener("click", unlockSound); }, { once: true });
     }
 
-    /* ============================
-       Start sequence
-       ============================ */
+    /* =========================
+       Start sequence: preload -> build pages -> init turn -> UI
+       ========================= */
     function start() {
-      // show loader and start preload
-      preloadFirstBatch();
+      // show loader and preload initial pages
+      preloadInitial();
 
-      // once app visible we create pages and turn
-      createBookPages();
+      // build page elements (img tags inserted for PRELOAD_COUNT pages)
+      buildPages();
 
-      // set initial page
-      currentPage = 1;
-
-      // attach UI handlers
-      attachUI();
-
-      // when turn init later, update UI
-      // init turn AFTER a small timeout to allow preloaded images to be painted and CSS computed
+      // small delay to allow DOM paint then init turn
       setTimeout(function(){
         initTurn();
         createPagination(1);
-        updateUIAfterTurn();
-        lastDisplay = detectDisplayMode();
-      }, 250);
+        updateAfterTurn();
+        attachUI();
+        lastDisplayMode = detectDisplay();
+      }, 300);
 
-      // handle resize/orientation with debounce
-      let to;
+      // window resize/orientation hooks
       $(window).on("resize orientationchange", function(){
-        clearTimeout(to);
-        to = setTimeout(function(){
-          // if turn not inited, ignore
-          if (!$book.data("turn-inited")) return;
-          onResizeDebounced();
-        }, 180);
+        onResize();
       });
 
-      // allow toggling sound after user gesture (browsers block autoplay)
-      document.body.addEventListener("click", function enableSound(){ soundAllowed = true; document.body.removeEventListener("click", enableSound); }, { once: true });
+      // automatically request fullscreen on mobile (gentle)
+      if(/Mobi|Android/i.test(navigator.userAgent)){
+        setTimeout(function(){ requestFullscreenSafely(); }, 600);
+      }
     }
 
-    // kick off when DOM ready
+    // kick off once DOM ready
     $(function(){
       start();
     });
