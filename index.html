@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Flipbook BMD 2023</title>
+  <title>Laporan Rekonsiliasi BMD Tahun 2023</title>
   <link rel="icon" href="images/page1.jpg"> <!-- favicon biar ga 404 -->
   <script src="js/jquery.min.js"></script>
   <script src="js/turn.min.js"></script>
@@ -28,7 +28,7 @@
     .flipbook .page { cursor: grab; }
     .flipbook .page:active { cursor: grabbing; }
 
-    /* efek bayangan tipis */
+    /* efek bayangan tebal biar kayak buku */
     .flipbook .page {
       box-shadow: inset -2px 0 5px rgba(0,0,0,0.15);
     }
@@ -93,6 +93,7 @@
     let currentBlock = 1;
     let soundEnabled = false;
 
+    const book = document.getElementById("book");
     const flipSound = document.getElementById("flip-sound");
     const pagination = document.getElementById("pagination");
     const magnifier = document.getElementById("magnifier");
@@ -101,7 +102,7 @@
     // aktifkan sound setelah user interaksi pertama
     document.body.addEventListener("click", () => { soundEnabled = true; }, { once: true });
 
-    // Tambah halaman ke flipbook
+    // Tambah halaman
     function loadPages(target){
       for(let i=1;i<=totalPages;i++){
         const page = document.createElement("div");
@@ -112,10 +113,11 @@
         target.appendChild(page);
       }
     }
+    loadPages(book);
 
-    // Hitung ukuran proporsional
+    // Hitung ukuran dengan rasio A4
     function getSize(){
-      const aspect = 842 / 595; // rasio A4
+      const aspect = 842 / 595; // A4 portrait
       let w = Math.min(window.innerWidth * 0.95, 800);
       let h = w * aspect;
       if (h > window.innerHeight * 0.9) {
@@ -126,50 +128,49 @@
     }
 
     function initFlipbook(){
-  const { w, h } = getSize();
-  const displayMode = "single"; // pakai single terus
-
-  $("#book").turn({
-    width: w,
-    height: h,
-    autoCenter: true,
-    display: displayMode,
-    when: {
-      turned: function(e, page){
-        if (soundEnabled) {
-          flipSound.currentTime = 0; 
-          flipSound.play().catch(()=>{});
-        }
-        highlightPage(page);
+      const { w, h } = getSize();
+      if (!$("#book").data("initialized")) {
+        $("#book").turn({
+          width: w,
+          height: h,
+          autoCenter: true,
+          display: "single", // selalu single
+          when: {
+            turned: function(e, page){
+              if (soundEnabled) {
+                flipSound.currentTime = 0; 
+                flipSound.play().catch(()=>{});
+              }
+              highlightPage(page);
+            }
+          }
+        });
+        $("#book").data("initialized", true);
       }
     }
-  });
 
-      // Magnifier
-      $(".flipbook .page img").on("mousemove", function(e){
-        magnifier.style.display = "block";
-        const rect = this.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        magnifier.style.left = e.pageX - magnifier.offsetWidth/2 + "px";
-        magnifier.style.top = e.pageY - magnifier.offsetHeight/2 + "px";
-
-        magnifierImg.src = this.src;
-        magnifierImg.style.left = -x*2 + magnifier.offsetWidth/2 + "px";
-        magnifierImg.style.top = -y*2 + magnifier.offsetHeight/2 + "px";
-      }).on("mouseleave",function(){
-        magnifier.style.display="none";
-      });
-    }
-
-    // Resize: update ukuran
+    // Resize: cukup update ukuran
     $(window).on("resize", function(){
-  const { w, h } = getSize();
-  $("#book").turn("size", w, h);
-  $("#book").turn("display", "single");
-});
+      const { w, h } = getSize();
+      $("#book").turn("size", w, h);
+    });
 
+    // Magnifier
+    $(document).on("mousemove", ".flipbook .page img", function(e){
+      magnifier.style.display = "block";
+      const rect = this.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      magnifier.style.left = e.pageX - magnifier.offsetWidth/2 + "px";
+      magnifier.style.top = e.pageY - magnifier.offsetHeight/2 + "px";
+
+      magnifierImg.src = this.src;
+      magnifierImg.style.left = -x*2 + magnifier.offsetWidth/2 + "px";
+      magnifierImg.style.top = -y*2 + magnifier.offsetHeight/2 + "px";
+    }).on("mouseleave", ".flipbook .page img", function(){
+      magnifier.style.display="none";
+    });
 
     // Pagination
     function createPagination(block=1){
@@ -204,7 +205,7 @@
       if(btns[idx]) btns[idx].classList.add("active");
     }
 
-    // Tombol navigasi
+    // Navigasi tombol
     document.getElementById("prev").addEventListener("click",()=>$("#book").turn("previous"));
     document.getElementById("next").addEventListener("click",()=>$("#book").turn("next"));
     document.getElementById("gotoBtn").addEventListener("click",()=>{
@@ -217,7 +218,6 @@
     });
 
     // Init
-    loadPages(document.getElementById("book"));
     initFlipbook();
     createPagination();
   </script>
