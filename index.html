@@ -126,24 +126,24 @@
     }
 
     function initFlipbook(){
-      const { w, h } = getSize();
-      const displayMode = window.innerWidth < 768 ? "single" : "double";
+  const { w, h } = getSize();
+  const displayMode = "single"; // pakai single terus
 
-      $("#book").turn({
-        width: w,
-        height: h,
-        autoCenter: true,
-        display: displayMode,
-        when: {
-          turned: function(e, page){
-            if (soundEnabled) {
-              flipSound.currentTime = 0; 
-              flipSound.play().catch(()=>{});
-            }
-            highlightPage(page);
-          }
+  $("#book").turn({
+    width: w,
+    height: h,
+    autoCenter: true,
+    display: displayMode,
+    when: {
+      turned: function(e, page){
+        if (soundEnabled) {
+          flipSound.currentTime = 0; 
+          flipSound.play().catch(()=>{});
         }
-      });
+        highlightPage(page);
+      }
+    }
+  });
 
       // Magnifier
       $(".flipbook .page img").on("mousemove", function(e){
@@ -165,10 +165,11 @@
 
     // Resize: update ukuran
     $(window).on("resize", function(){
-      const { w, h } = getSize();
-      $("#book").turn("size", w, h);
-      $("#book").turn("display", window.innerWidth < 768 ? "single" : "double");
-    });
+  const { w, h } = getSize();
+  $("#book").turn("size", w, h);
+  $("#book").turn("display", "single");
+});
+
 
     // Pagination
     function createPagination(block=1){
