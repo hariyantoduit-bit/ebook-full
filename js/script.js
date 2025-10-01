@@ -8,7 +8,7 @@
     const PER_BLOCK = 10;        // pagination per block
     const A4_ASPECT = 1.41421356; // tinggi/lebar ≈ 297/210
     const MAX_BOOK_WIDTH = 1200; // maksimal lebar book (adjustable)
-    const PRELOAD_COUNT = 20;    // halaman pertama yang dipreload sebelum sembunyikan loader
+    const PRELOAD_COUNT = 173;    // halaman pertama yang dipreload sebelum sembunyikan loader
 
     let currentPage = 1;         // halaman aktif (1-based)
     let currentBlock = 1;
